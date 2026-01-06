@@ -1,0 +1,2104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MaaS: Predictive Care Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .disabled-button {
+            background-color: #9ca3af; /* gray-400 */
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .disabled-button:hover {
+            background-color: #9ca3af;
+        }
+        .recording-button {
+            background-color: #dc2626; /* red-600 */
+        }
+        .recording-button:hover {
+            background-color: #b91c1c; /* red-700 */
+        }
+        /* Splash Screen Styles */
+        #splash-screen {
+            transition: opacity 0.5s ease-out;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #ffffff;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .font-calligraphy { 
+            font-family: 'Great Vibes', cursive; 
+        }
+        /* Custom scrollbar for history */
+        #history-entries-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        #history-entries-container::-webkit-scrollbar-track {
+            background: #f1f5f9; /* gray-100 */
+        }
+        #history-entries-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1; /* gray-300 */
+            border-radius: 10px;
+        }
+         #history-entries-container::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; /* gray-400 */
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-100">
+
+    <!-- Splash Screen -->
+    <div id="splash-screen" class="fixed inset-0 bg-cover bg-center z-50" style="background-image: url('https://images.pexels.com/photos/1749352/pexels-photo-1749352.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1');">
+        <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+        <div class="relative z-10 flex flex-col items-center justify-center h-full text-white text-center px-4">
+            <h1 class="font-calligraphy text-8xl md:text-9xl" style="text-shadow: 2px 2px 6px rgba(0,0,0,0.5);">MaaS</h1>
+            <p class="mt-2 text-xl md:text-2xl" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.7);">Motherhood, a forever bond</p>
+            <div class="spinner mt-12"></div>
+        </div>
+    </div>
+
+
+    <div id="main-content" class="max-w-7xl mx-auto my-4 sm:my-8 p-4 sm:p-8 opacity-0 transition-opacity duration-500 bg-white rounded-2xl shadow-xl">
+        <!-- Dashboard Header -->
+        <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8">
+            <div class="mb-4 sm:mb-0">
+                <h1 class="text-3xl font-bold text-gray-800" data-translate-key="dashboard_title">MaaS Dashboard</h1>
+                <p class="text-lg text-gray-500" data-translate-key="dashboard_subtitle">Prioritized Monitoring of Rural Pregnancy Cases</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                 <div class="flex items-center space-x-2 bg-white p-2 rounded-lg shadow-sm border">
+                    <div class="w-4 h-4 rounded-full bg-red-500"></div>
+                    <span class="text-gray-600" data-translate-key="high_risk">High Risk</span>
+                    <div class="w-4 h-4 rounded-full bg-yellow-500 ml-4"></div>
+                    <span class="text-gray-600" data-translate-key="medium_risk">Medium Risk</span>
+                    <div class="w-4 h-4 rounded-full bg-green-500 ml-4"></div>
+                    <span class="text-gray-600" data-translate-key="low_risk">Low Risk</span>
+                </div>
+                <div>
+                     <select id="ui-language-select" class="bg-white px-3 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-300">
+                         <!-- Options will be populated by JS -->
+                     </select>
+                </div>
+            </div>
+        </header>
+
+        <!-- Search and Filter Section -->
+        <div class="mb-6 flex flex-col sm:flex-row gap-4">
+            <input type="text" id="search-input" data-translate-key="search_placeholder" placeholder="Search by name or village..." class="flex-grow w-full px-4 py-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-300 bg-white">
+            <button id="add-patient-btn" class="flex-shrink-0 px-5 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center justify-center space-x-2">
+                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+                <span data-translate-key="add_patient_btn">Add New Patient</span>
+            </button>
+        </div>
+
+        <!-- Main Dashboard Content -->
+        <div id="dashboard-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Patient cards will be injected here by JavaScript -->
+        </div>
+        
+        <!-- Patient Details Modal -->
+        <div id="modal-backdrop" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 overflow-y-auto" onclick="closeModal()">
+            <div id="modal-content" class="bg-white rounded-lg p-6 w-full max-w-2xl mx-auto shadow-xl transform transition-all my-8" onclick="event.stopPropagation()">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="modal-patient-name" class="text-2xl font-semibold text-gray-800"></h3>
+                    <button onclick="closeModal()" class="text-gray-500 hover:text-gray-800 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="space-y-4 text-gray-700">
+                    <div class="flex items-center space-x-2">
+                        <span id="modal-risk-dot" class="w-3 h-3 rounded-full"></span>
+                        <span id="modal-risk-level" class="font-medium"></span>
+                    </div>
+                    <p><span class="font-medium" data-translate-key="village_label">Village:</span> <span id="modal-village"></span></p>
+                    <p><span class="font-medium" data-translate-key="last_updated_label">Last Updated:</span> <span id="modal-last-updated"></span></p>
+                    <div id="modal-details" class="p-4 bg-gray-50 rounded-lg border border-gray-200"></div>
+                </div>
+
+                <!-- Weekly History Section -->
+                 <div class="mt-6 pt-4 border-t border-gray-200">
+                    <div class="flex justify-between items-center mb-3">
+                         <h4 class="text-md font-semibold text-gray-800" data-translate-key="history_title">Weekly History</h4>
+                         <button id="add-history-btn" class="px-3 py-1.5 text-sm rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 flex items-center space-x-1.5">
+                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+                             <span data-translate-key="add_entry_btn">Add Entry</span>
+                         </button>
+                    </div>
+                    <div id="history-entries-container" class="max-h-48 overflow-y-auto space-y-3 pr-2">
+                        <!-- History entries will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Read Details Aloud Section -->
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <h4 class="text-md font-semibold text-gray-800 mb-3" data-translate-key="read_aloud_title">Read Patient Details Aloud</h4>
+                    <div class="flex flex-col sm:flex-row items-center gap-3">
+                        <select id="language-select" class="w-full sm:w-1/2 flex-grow px-3 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-300 bg-white">
+                            <!-- Options populated by JS -->
+                        </select>
+                        <button id="play-translation-btn" onclick="readDetailsAloud()" class="w-full sm:w-auto flex-shrink-0 px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 15.858a5 5 0 010-7.072m2.828 9.9a9 9 0 010-12.728"></path></svg>
+                            <span data-translate-key="play_audio_btn">Play Audio</span>
+                        </button>
+                    </div>
+                    <p id="tts-status" class="mt-2 text-center text-xs text-gray-500"></p>
+                </div>
+                
+                <!-- Live Conversation Translator -->
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <h4 class="text-md font-semibold text-gray-800 mb-1" data-translate-key="translator_title">Live Conversation Translator</h4>
+                     <div class="p-2 rounded-lg bg-yellow-100 border border-yellow-300 text-yellow-800 text-xs mb-3">
+                         <strong data-translate-key="note_title">Note:</strong> <span data-translate-key="note_body">This is a simplified demonstration. Real-time speech recognition requires a secure (HTTPS) connection to function.</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-2" data-translate-key="translator_instruction">Select patient's language above. Use the record buttons to translate speech.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- ASHA Worker Side -->
+                        <div>
+                            <label class="font-medium text-gray-700" data-translate-key="asha_worker_label">ASHA Worker (English)</label>
+                            <div id="asha-speech-output" class="mt-1 w-full p-2 h-24 bg-gray-50 rounded-lg border border-gray-200 overflow-y-auto text-sm"></div>
+                            <button id="asha-record-btn" class="mt-2 w-full px-4 py-2 rounded-lg bg-gray-700 text-white font-semibold hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 flex items-center justify-center space-x-2">
+                                <span id="asha-record-btn-icon">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-1a6 6 0 11-12 0H3a7.001 7.001 0 006 6.93V17H7v1h6v-1h-2v-2.07z" clip-rule="evenodd"></path></svg>
+                                </span>
+                                <span id="asha-record-btn-text" data-translate-key="record_btn">Record</span>
+                            </button>
+                        </div>
+                        <!-- Patient Side -->
+                        <div>
+                            <label id="patient-lang-label" class="font-medium text-gray-700" data-translate-key="patient_label">Patient</label>
+                            <div id="patient-speech-output" class="mt-1 w-full p-2 h-24 bg-blue-50 rounded-lg border border-blue-200 overflow-y-auto text-sm"></div>
+                            <button id="patient-record-btn" class="mt-2 w-full px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center justify-center space-x-2">
+                                <span id="patient-record-btn-icon">
+                                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-1a6 6 0 11-12 0H3a7.001 7.001 0 006 6.93V17H7v1h6v-1h-2v-2.07z" clip-rule="evenodd"></path></svg>
+                                </span>
+                                <span id="patient-record-btn-text" data-translate-key="record_btn">Record</span>
+                            </button>
+                        </div>
+                    </div>
+                    <p id="stt-status" class="mt-3 text-center text-sm font-medium"></p>
+                </div>
+                 <div class="mt-8 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                    <button onclick="simulateAction('call')" class="flex-1 px-4 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" data-translate-key="simulate_call_btn">
+                        Simulate Call
+                    </button>
+                    <button onclick="simulateAction('sms')" class="flex-1 px-4 py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50" data-translate-key="simulate_sms_btn">
+                        Simulate SMS
+                    </button>
+                </div>
+                <p id="action-message" class="mt-4 text-center text-sm font-medium text-gray-600"></p>
+            </div>
+        </div>
+        
+        <!-- Add Patient Modal -->
+        <div id="add-patient-modal-backdrop" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 overflow-y-auto">
+            <div class="bg-white rounded-lg p-6 w-full max-w-lg mx-auto shadow-xl transform transition-all" onclick="event.stopPropagation()">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-semibold text-gray-800" data-translate-key="add_new_patient_title">Add New Patient</h3>
+                    <button id="close-add-modal-btn" class="text-gray-500 hover:text-gray-800 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <form id="add-patient-form" class="space-y-4">
+                    <!-- English Fields (Required) -->
+                    <div>
+                        <label for="new-patient-name-en-IN" class="block text-sm font-medium text-gray-700">Full Name (English)</label>
+                        <input type="text" id="new-patient-name-en-IN" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                     <div>
+                        <label for="new-patient-village-en-IN" class="block text-sm font-medium text-gray-700">Village (English)</label>
+                        <input type="text" id="new-patient-village-en-IN" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                     <div>
+                        <label for="new-patient-details-en-IN" class="block text-sm font-medium text-gray-700">Symptoms / Details (English)</label>
+                        <textarea id="new-patient-details-en-IN" rows="3" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+
+                    <!-- Optional Translations Section -->
+                    <div class="pt-4 border-t">
+                        <details>
+                            <summary class="cursor-pointer text-sm font-medium text-gray-700 hover:text-blue-600 list-none">
+                                <span data-translate-key="add_translations_label">Add Translations (Optional)</span>
+                                <span class="float-right transition-transform transform duration-200">+</span>
+                            </summary>
+                            <div class="mt-4 space-y-6 p-4 bg-gray-50 rounded-md border">
+                                <!-- Dynamically added translation fields will go here -->
+                                <div id="translation-fields-container"></div>
+                            </div>
+                        </details>
+                    </div>
+
+                     <div>
+                        <label for="new-patient-risk" class="block text-sm font-medium text-gray-700" data-translate-key="form_risk_label">Risk Level</label>
+                        <select id="new-patient-risk" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="green" data-translate-key="low_risk">Low Risk</option>
+                            <option value="yellow" data-translate-key="medium_risk">Medium Risk</option>
+                            <option value="red" data-translate-key="high_risk">High Risk</option>
+                        </select>
+                    </div>
+
+                    <div class="flex justify-end space-x-4 pt-4">
+                         <button type="button" id="cancel-add-patient-btn" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300" data-translate-key="cancel_btn">Cancel</button>
+                         <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700" data-translate-key="save_patient_btn">Save Patient</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add History Entry Modal -->
+        <div id="add-history-modal-backdrop" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 overflow-y-auto z-20">
+            <div class="bg-white rounded-lg p-6 w-full max-w-lg mx-auto shadow-xl transform transition-all" onclick="event.stopPropagation()">
+                 <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-semibold text-gray-800" data-translate-key="add_entry_title">Add Weekly Entry</h3>
+                    <button id="close-history-modal-btn" class="text-gray-500 hover:text-gray-800 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                 <form id="add-history-form" class="space-y-4">
+                    <div>
+                        <label for="history-week" class="block text-sm font-medium text-gray-700" data-translate-key="week_label">Week (1-41)</label>
+                        <input type="number" id="history-week" min="1" max="41" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="history-bp" class="block text-sm font-medium text-gray-700" data-translate-key="bp_label">Blood Pressure (e.g., 120/80)</label>
+                        <input type="text" id="history-bp" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="history-weight" class="block text-sm font-medium text-gray-700" data-translate-key="weight_label">Weight (e.g., 65kg)</label>
+                        <input type="text" id="history-weight" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                     <div>
+                        <label for="history-sugar" class="block text-sm font-medium text-gray-700" data-translate-key="sugar_label">Blood Sugar (e.g., 90 mg/dL)</label>
+                        <input type="text" id="history-sugar" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="history-notes" class="block text-sm font-medium text-gray-700" data-translate-key="notes_label">Notes</label>
+                        <textarea id="history-notes" rows="3" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+                     <div class="flex justify-end space-x-4 pt-4">
+                         <button type="button" id="cancel-add-history-btn" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300" data-translate-key="cancel_btn">Cancel</button>
+                         <button type="submit" class="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700" data-translate-key="save_entry_btn">Save Entry</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+    </div>
+
+    <script>
+        const patients = [
+            { 
+                id: 1, name: 'Radha Kumari', village: 'Baranagar', riskLevel: 'red', lastUpdated: '5 mins ago', 
+                details: 'Severe swelling in feet, elevated blood pressure (160/100). Advise immediate hospital visit for pre-eclampsia symptoms.',
+                translations: {
+                    'hi-IN': { name: 'राधा कुमारी', village: 'बारानागर', details: 'पैरों में गंभीर सूजन, बढ़ा हुआ रक्तचाप (160/100)। प्री-एक्लेमप्सिया के लक्षणों के लिए तत्काल अस्पताल जाने की सलाह दें।' },
+                    'as': { name: 'ৰাধা কুমাৰী', village: 'বাৰানগৰ', details: 'ভৰিত তীব্ৰ ফুলি উঠা, উচ্চ ৰক্তচাপ (১৬০/১০০)। প্ৰি-এক্লাম্পচিয়াৰ লক্ষণৰ বাবে তৎকালীনভাৱে চিকিৎসালয়লৈ যোৱাৰ পৰামৰ্শ দিয়ক।' },
+                    'bn-IN': { name: 'রাধা কুমারী', village: 'বরাহনগর', details: 'পায়ে গুরুতর ফোলা, উচ্চ রক্তচাপ (160/100)। প্রি-এক্লাম্পসিয়ার উপসর্গের জন্য অবিলম্বে হাসপাতালে যাওয়ার পরামর্শ দিন।' },
+                    'brx': { name: 'राधा कुमारी', village: 'बारानगर', details: 'आयङाव गोब्रा फुनाय, बारा थेर दबाब (160/100)। प्री-एक्लेम्पसियानि लक्षणफोरनि थाखाय थाबैनो देहा फाहामसालियाव थांनो सानसुमै हो।' },
+                    'doi': { name: 'राधा कुमारी', village: 'बारानगर', details: 'पैरां च भारी सोज, बद्धोआ ब्लड प्रेशर (160/100)। प्री-एक्लेम्पसिया दे लच्छनां लेई फौरन अस्पताल जाने दी सलाह देओ।' },
+                    'gu-IN': { name: 'રાધા કુમારી', village: 'બારાનગર', details: 'પગમાં ગંભીર સોજો, એલિવેટેડ બ્લડ પ્રેશર (160/100). પ્રી-એક્લેમ્પસિયાના લક્ષણો માટે તાત્કાલિક હોસ્પિટલની મુલાકાત લેવાની સલાહ આપો.'},
+                    'kn-IN': { name: 'ರಾಧಾ ಕುಮಾರಿ', village: 'ಬಾರಾನಗರ', details: 'ಕಾಲುಗಳಲ್ಲಿ ತೀವ್ರವಾದ ಊತ, ಅಧಿಕ ರಕ್ತದೊತ್ತಡ (160/100). ಪ್ರಿಕ್ಲಾಂಪ್ಸಿಯಾದ ಲಕ್ಷಣಗಳಿಗಾಗಿ ತಕ್ಷಣವೇ ಆಸ್ಪತ್ರೆಗೆ ಭೇಟಿ ನೀಡಲು ಸಲಹೆ ನೀಡಿ.' },
+                    'ks': { name: 'رادھا کُماری', village: 'بارانگر', details: 'کھورَن مَنٛز چھِ شٔدیٖد وَرم، زیٛادٕ بلڈ پریشر (160/100)۔ پری ایکلیمپسیا ہٕنٛدِ علامتن خٲطرٕ چھُ فَوراً ہسپتال گژھنُک مشورٕ دِنہٕ یِوان۔' },
+                    'kok': { name: 'राधा कुमारी', village: 'बारानगर', details: 'पांयार गंभीर सूज, वाडिल्लो रक्तदाब (160/100). प्री-एक्लेम्पसियाच्या लक्षणां खातीर तात्काळ रुग्णालयांत वचपाचो सल्लो दिवचो.' },
+                    'mai': { name: 'राधा कुमारी', village: 'बारानागर', details: 'पएर मे गंभीर सूजन, बढ़ल रक्तचाप (160/100)। प्री-एक्लेम्पसियाक लक्षणक लेल तत्काल अस्पताल जेबाक सलाह दियौ।' },
+                    'ml-IN': { name: 'രാധാ കുമാരി', village: 'ബരാനഗർ', details: 'കാലുകളിൽ കഠിനമായ നീർവീക്കം, ഉയർന്ന രക്തസമ്മർദ്ദം (160/100). പ്രീ-എക്ലാംസിയയുടെ ലക്ഷണങ്ങൾക്കായി ഉടൻ ആശുപത്രിയിൽ പോകാൻ ഉപദേശിക്കുക.' },
+                    'mni': { name: 'রাধাকুমারী', village: 'বারানগর', details: 'খোঙদা অহানবা শাবা, অৱাংবা ঈগী প্রেসর (160/100)। প্রি-এক্লেম্সিয়াগী মহিংগীদমক অথুবদা হোস্পিতালদা চৎনবা হায়বীয়ু।' },
+                    'mr-IN': { name: 'राधा कुमारी', village: 'बारानगर', details: 'पायांवर तीव्र सूज, उच्च रक्तदाब (160/100). प्री-एक्लेम्पसियाच्या लक्षणांसाठी त्वरित रुग्णालयात जाण्याचा सल्ला द्या.' },
+                    'ne-NP': { name: 'राधा कुमारी', village: 'बारानगर', details: 'खुट्टामा गम्भीर सुजन, उच्च रक्तचाप (160/100)। प्रि-एक्लेम्पसियाका लक्षणहरूका लागि तुरुन्त अस्पताल जान सल्लाह दिनुहोस्।' },
+                    'or': { name: 'ରାଧା କୁମାରୀ', village: 'ବାରାନଗର', details: 'ପାଦରେ ଗୁରୁତର ଫୁଲା, ବର୍ଦ୍ଧିତ ରକ୍ତଚାପ (୧୬୦/୧୦୦)। ପ୍ରି-ଏକ୍ଲାମ୍ପସିଆ ଲକ୍ଷଣ ପାଇଁ ତୁରନ୍ତ ଡାକ୍ତରଖାନା ପରିଦର୍ଶନ ପାଇଁ ପରାମର୍ଶ ଦିଅନ୍ତୁ।' },
+                    'pa-IN': { name: 'ਰਾਧਾ ਕੁਮਾਰੀ', village: 'ਬਾਰਾਨਗਰ', details: 'ਪੈਰਾਂ ਵਿੱਚ ਗੰਭੀਰ ਸੋਜ, ਵਧਿਆ ਹੋਇਆ ਬਲੱਡ ਪ੍ਰੈਸ਼ਰ (160/100)। ਪ੍ਰੀ-ਐਕਲੈਂਪਸੀਆ ਦੇ ਲੱਛਣਾਂ ਲਈ ਤੁਰੰਤ ਹਸਪਤਾਲ ਜਾਣ ਦੀ ਸਲਾਹ ਦਿਓ।' },
+                    'sa': { name: 'राधा कुमारी', village: 'बारानगरम्', details: 'पादयोः तीव्रः शोथः, वर्धितः रक्तचापः (१६०/१००) । प्री-एक्लेम्ψइआ-लक्षणार्थं सत्वरं चिकित्सालयं गन्तुं परामर्शः दीयताम्।' },
+                    'sat': { name: 'राधा कुमारी', village: 'बारानगर', details: 'जांगा रे माराङ फुला, बाढাও मायाम चाप (160/100)। प्री-एक्लेम्पसिया लक्षण लागि लागिड अस्पताल सेनोअ लागि सलाह एम।' },
+                    'sd': { name: 'راڌا ڪماري', village: 'بارانگر', details: 'پيرن ۾ سخت سوڄ، وڌيل بلڊ پريشر (160/100). پري-ايڪلمپسيا جي علامتن لاءِ فوري طور اسپتال وڃڻ جي صلاح ڏيو.' },
+                    'ta-IN': { name: 'ராதா குமாரி', village: 'பராநகர்', details: 'கால்களில் கடுமையான வீக்கம், உயர் இரத்த அழுத்தம் (160/100). ப்ரீ-எக்லாம்ப்சியா அறிகுறிகளுக்கு உடனடியாக மருத்துவமனைக்குச் செல்ல அறிவுறுத்துங்கள்.'},
+                    'te-IN': { name: 'రాధా కుమారి', village: 'బారానగర్', details: 'పాదాలలో తీవ్రమైన వాపు, పెరిగిన రక్తపోటు (160/100). ప్రీ-ఎక్లాంప్సియా లక్షణాల కోసం తక్షణమే ఆసుపత్రికి వెళ్లాలని సలహా ఇవ్వండి.' },
+                    'ur-IN': { name: 'رادھا کماری', village: 'بارانگر', details: 'پیروں میں شدید سوجن، بلند فشار خون (160/100)۔ پری ایکلیمپسیا کی علامات کے لیے فوری طور پر ہسپتال جانے کا مشورہ دیں۔' }
+                },
+                history: [
+                    { week: 14, bp: '140/90', weight: '61kg', sugar: '95 mg/dL', notes: 'Slight increase in BP. Monitoring.', translations: {'hi-IN': { notes: 'बीपी में मामूली वृद्धि। निगरानी में।' }, 'bn-IN': { notes: 'বিপি সামান্য বৃদ্ধি। পর্যবেক্ষণ করা হচ্ছে।' }, 'pa-IN': { notes: 'ਬੀਪੀ ਵਿੱਚ ਮਾਮੂਲੀ ਵਾਧਾ। ਨਿਗਰਾਨੀ ਹੇਠ ਹੈ।' }, 'gu-IN': { notes: 'બીપીમાં થોડો વધારો. દેખરેખ હેઠળ છે.' }, 'ta-IN': { notes: 'இரத்த அழுத்தத்தில் சிறிய அதிகரிப்பு. கண்காணிக்கப்படுகிறது.' }}},
+                    { week: 13, bp: '122/81', weight: '60.5kg', sugar: '92 mg/dL', notes: 'Patient feels fine.', translations: {'hi-IN': { notes: 'मरीज ठीक महसूस कर रही है।' }, 'bn-IN': { notes: 'রোগী ভাল বোধ করছেন।' }, 'pa-IN': { notes: 'ਮਰੀਜ਼ ਠੀਕ ਮਹਿਸੂਸ ਕਰ ਰਿਹਾ ਹੈ।' }, 'gu-IN': { notes: 'દર્દીને સારું લાગે છે.' }, 'ta-IN': { notes: 'நோயாளி நன்றாக உணர்கிறார்.' }}},
+                    { week: 12, bp: '120/80', weight: '60kg', sugar: '90 mg/dL', notes: 'Initial check-up. All seems normal.', translations: {'hi-IN': { notes: 'प्रारंभिक जांच। सब सामान्य लगता है।' }, 'bn-IN': { notes: 'প্রাথমিক পরীক্ষা। সব স্বাভাবিক মনে হচ্ছে।' }, 'pa-IN': { notes: 'ਸ਼ੁਰੂਆਤੀ ਜਾਂਚ। ਸਭ ਕੁਝ ਆਮ ਲੱਗਦਾ ਹੈ।' }, 'gu-IN': { notes: 'પ્રારંભિક તપાસ. બધું સામાન્ય લાગે છે.' }, 'ta-IN': { notes: 'ஆரம்ப பரிசோதனை. எல்லாம் இயல்பாகத் தெரிகிறது.' }}}
+                ]
+            },
+            { 
+                id: 2, name: 'Priya Sharma', village: 'Chakrata', riskLevel: 'yellow', lastUpdated: '1 hour ago', 
+                details: 'Patient reports persistent headaches and dizziness. Monitor closely and schedule follow-up.',
+                translations: {
+                    'hi-IN': { name: 'प्रिया शर्मा', village: 'चकराता', details: 'मरीज लगातार सिरदर्द और चक्कर आने की शिकायत कर रहा है। बारीकी से निगरानी करें और फॉलो-अप शेड्यूल करें।' },
+                    'as': { name: 'প্ৰিয়া শৰ্মা', village: 'চক্ৰতা', details: 'ৰোগীয়ে অবিৰতভাৱে মূৰৰ বিষ আৰু মূৰ ঘূৰোৱাৰ বিষয়ে জনাইছে। ওচৰৰ পৰা নিৰীক্ষণ কৰক আৰু ফ\'ল-আপৰ সময় নিৰ্ধাৰণ কৰক।' },
+                    'bn-IN': { name: 'প্রিয়া শর্মা', village: 'চকরাতা', details: 'রোগী ক্রমাগত মাথাব্যথা এবং মাথা ঘোরার অভিযোগ করছেন। ঘনিষ্ঠভাবে পর্যবেক্ষণ করুন এবং ফলো-আপের সময়সূচী করুন।' },
+                    'brx': { name: 'प्रिया शर्मा', village: 'चकराता', details: 'बेरामीया गोब्रा माथा सानाय आरो माथा गिदिंनायनि बागै बुंदों। मोजाङै नायबिजिर आरो फलो-अपनि थाखाय थि खालाम।' },
+                    'doi': { name: 'प्रिया शर्मा', village: 'चकराता', details: 'मरीज लगातार सिरदर्द ते चक्कर आने दी शिकायत करदा ऐ। नेड़े थमां निगरानी रक्खो ते फॉलो-अप शेड्यूल करो।' },
+                    'gu-IN': { name: 'પ્રિયા શર્મા', village: 'ચકરાતા', details: 'દર્દી સતત માથાનો દુખાવો અને ચક્કરની જાણ કરે છે. નજીકથી મોનિટર કરો અને ફોલો-અપ શેડ્યૂલ કરો.'},
+                    'kn-IN': { name: 'ಪ್ರಿಯಾ ಶರ್ಮಾ', village: 'ಚಕ್ರತಾ', details: 'ರೋಗಿಯು ನಿರಂತರ ತಲೆನೋವು ಮತ್ತು ತಲೆತಿರುಗುವಿಕೆಯನ್ನು ವರದಿ ಮಾಡಿದ್ದಾರೆ. ನಿಕಟವಾಗಿ ಮೇಲ್ವಿಚಾರಣೆ ಮಾಡಿ ಮತ್ತು ಅನುಸರಣೆಯನ್ನು ನಿಗದಿಪಡಿಸಿ.' },
+                    'ks': { name: 'پریا شرما', village: 'چکرتا', details: 'مریض چھُ مسلسل کلۍ درد تہٕ چکرٕچ شکایت کران۔ نزدیکی سان نگرانی کٔرِو تہٕ فالو اپ شیڈول کٔرِو۔' },
+                    'kok': { name: 'प्रिया शर्मा', village: 'चकराता', details: 'रुग्ण सतत डोकेदुखी आणि चक्कर येत असल्याची तक्रार करत आहे. जवळून निरीक्षण करा आणि फॉलो-अप शेड्यूल करा.' },
+                    'mai': { name: 'प्रिया शर्मा', village: 'चकराता', details: 'रोगी लगातार माथ दर्द आ चक्कर आबय के शिकायत क रहल छथि। निकट सँ निगरानी करू आ फॉलो-अप शेड्यूल करू।' },
+                    'ml-IN': { name: 'പ്രിയ ശർമ്മ', village: 'ചക്രത', details: 'രോഗിക്ക് സ്ഥിരമായ തലവേദനയും തലകറക്കവും റിപ്പോർട്ട് ചെയ്യുന്നു. അടുത്തു നിരീക്ഷിക്കുകയും ഫോളോ-അപ്പ് ഷെഡ്യൂൾ ചെയ്യുകയും ചെയ്യുക.' },
+                    'mni': { name: 'প্রিয়া শর্মা', village: 'চক্রতা', details: 'অনাবনা লেপ্তনা кок চিকপা অমসুং মাং তাকপগী পাউদম পীরি। নকশিন্ননা য়েংশিন্নবীয়ু অমসুং ফলো-অপ অমসুং থম্নবীয়ু।' },
+                    'mr-IN': { name: 'प्रिया शर्मा', village: 'चकराता', details: 'रुग्ण सतत डोकेदुखी आणि चक्कर येत असल्याची तक्रार करत आहे. जवळून निरीक्षण करा आणि फॉलो-अप शेड्यूल करा.' },
+                    'ne-NP': { name: 'प्रिया शर्मा', village: 'चक्रता', details: 'बिरामीले लगातार टाउको दुख्ने र चक्कर लाग्ने रिपोर्ट गर्छन्। नजिकबाट निगरानी गर्नुहोस् र फलो-अप तालिका बनाउनुहोस्।' },
+                    'or': { name: 'ପ୍ରିୟା ଶର୍ମା', village: 'ଚକ୍ରତା', details: 'ରୋଗୀ କ୍ରମାଗତ ମୁଣ୍ଡବିନ୍ଧା ଏବଂ ମୁଣ୍ଡ ବୁଲାଇବା ଅଭିଯୋଗ କରୁଛନ୍ତି। ଘନିଷ୍ଠ ଭାବରେ ନୀରିକ୍ଷଣ କରନ୍ତୁ ଏବଂ ଫଲୋ-ଅପ୍ ସମୟସାରଣୀ କରନ୍ତୁ।' },
+                    'pa-IN': { name: 'ਪ੍ਰਿਆ ਸ਼ਰਮਾ', village: 'ਚਕਰਤਾ', details: 'ਮਰੀਜ਼ ਲਗਾਤਾਰ ਸਿਰ ਦਰਦ ਅਤੇ ਚੱਕਰ ਆਉਣ ਦੀ ਸ਼ਿਕਾਇਤ ਕਰ ਰਿਹਾ ਹੈ। ਧਿਆਨ ਨਾਲ ਨਿਗਰਾਨੀ ਕਰੋ ਅਤੇ ਫਾਲੋ-ਅੱਪ ਤਹਿ ਕਰੋ।' },
+                    'sa': { name: 'प्रिया शर्मा', village: 'चक्रता', details: 'रुग्णः निरन्तरं शिरोवेदनां शिरोभ्रमणं च सूचयति। समीपं निरीक्ष्यतां अनुसरणं च निर्धार्यताम्।' },
+                    'sat': { name: 'प्रिया शर्मा', village: 'चकराता', details: 'रोगी लगातार बोहोः हासू आर गोलोए रिपोर्ट एमोः काना। सोर ते ञेल मे आर फॉलो-अप शेड्यूल मे।' },
+                    'sd': { name: 'پريا شرما', village: 'چڪرتا', details: 'مريض مسلسل سر درد ۽ چڪر جي رپورٽ ڪري ٿو. ويجهي کان نگراني ڪريو ۽ فالو اپ شيڊول ڪريو.' },
+                    'ta-IN': { name: 'பிரியா சர்மா', village: 'சக்ராதா', details: 'நோயாளி தொடர்ந்து தலைவலி மற்றும் தலைச்சுற்றல் இருப்பதாக தெரிவிக்கிறார். உன்னிப்பாகக் கண்காணித்து, பின்தொடர்தலைத் திட்டமிடுங்கள்.'},
+                    'te-IN': { name: 'ప్రియా శర్మ', village: 'చక్రతా', details: 'రోగి నిరంతర తలనొప్పి మరియు తలతిరగడం గురించి ఫిర్యాదు చేస్తున్నారు. దగ్గరగా పర్యవేక్షించండి మరియు ఫాలో-అప్ షెడ్యూల్ చేయండి.' },
+                    'ur-IN': { name: 'پریا شرما', village: 'چکرتا', details: 'مریض مسلسل سر درد اور چکر آنے کی شکایت کرتا ہے۔ قریب سے نگرانی کریں اور فالو اپ کا شیڈول بنائیں۔' }
+                },
+                 history: [
+                    { week: 21, bp: '128/86', weight: '68.5kg', sugar: '102 mg/dL', notes: 'Headaches persist. Advised rest.', translations: {'hi-IN': { notes: 'सिरदर्द बना हुआ है। आराम की सलाह दी।'}, 'bn-IN': { notes: 'মাথাব্যথা রয়ে গেছে। বিশ্রামের পরামর্শ দেওয়া হয়েছে।' }, 'pa-IN': { notes: 'ਸਿਰ ਦਰਦ ਜਾਰੀ ਹੈ। ਆਰਾਮ ਦੀ ਸਲਾਹ ਦਿੱਤੀ ਗਈ।' }, 'gu-IN': { notes: 'માથાનો દુખાવો ચાલુ રહે છે. ਆਰਾਮની સલાહ આપવામાં આવી છે.' }, 'ta-IN': { notes: 'தலைவலி தொடர்கிறது. ஓய்வெடுக்க அறிவுறுத்தப்பட்டது.' }}},
+                    { week: 20, bp: '125/85', weight: '68kg', sugar: '100 mg/dL', notes: 'Patient reports mild headaches.', translations: {'hi-IN': { notes: 'मरीज हल्के सिरदर्द की शिकायत करती है।'},'bn-IN': { notes: 'রোগী হালকা মাথাব্যথার কথা জানিয়েছেন।' }, 'pa-IN': { notes: 'ਮਰੀਜ਼ ਹਲਕੇ ਸਿਰ ਦਰਦ ਦੀ ਸ਼ਿਕਾਇਤ ਕਰਦਾ ਹੈ।' }, 'gu-IN': { notes: 'દર્દી હળવા માથાના દુખાવાની જાણ કરે છે.' }, 'ta-IN': { notes: 'நோயாளிக்கு லேசான தலைவலி இருப்பதாக தெரிவிக்கிறார்.' }}}
+                ]
+            },
+            { 
+                id: 3, name: 'Sita Devi', village: 'Ramnagar', riskLevel: 'green', lastUpdated: '3 hours ago', 
+                details: 'All vitals stable, no complications detected. Routine check-up.',
+                translations: {
+                    'hi-IN': { name: 'सीता देवी', village: 'रामनगर', details: 'सभी वाइटल्स स्थिर हैं, कोई जटिलता नहीं पाई गई। रूटीन चेक-अप।' },
+                    'as': { name: 'সীতা দেৱী', village: 'ৰামনগৰ', details: 'সকলো ভাইটেল সুস্থিৰ, কোনো জটিলতা পোৱা নাই। নিয়মীয়া পৰীক্ষা।' },
+                    'bn-IN': { name: 'সীতা দেবী', village: 'রাম নগর', details: 'সমস্ত ভাইটাল স্থিতিশীল, কোনও জটিলতা সনাক্ত করা হয়নি। রুটিন চেক-আপ।' },
+                    'brx': { name: 'सीता देवी', village: 'रामनगर', details: 'गासैबो भाइटलफोर थि, मोनसेबो जेंना नुजायाखै। साधारन नायबिजिरनाय।' },
+                    'doi': { name: 'सीता देवी', village: 'रामनगर', details: 'सब्भै वाइटल स्थिर न, कोई जटिलता नेईं लब्भी। रूटीन चेक-अप।' },
+                    'gu-IN': { name: 'સીતા દેવી', village: 'રામનગર', details: 'તમામ જીવંત સ્થિર છે, કોઈ ગૂંચવણો મળી નથી. નિયમિત તપાસ.'},
+                    'kn-IN': { name: 'ಸೀತಾ ದೇವಿ', village: 'ರಾಮನಗರ', details: 'ಎಲ್ಲಾ ಪ್ರಮುಖ ಚಿಹ್ನೆಗಳು ಸ್ಥಿರವಾಗಿವೆ, ಯಾವುದೇ ತೊಡಕುಗಳು ಪತ್ತೆಯಾಗಿಲ್ಲ. ನಿಯಮಿತ ತಪಾಸಣೆ.' },
+                    'ks': { name: 'سیتا دیوی', village: 'رام نگر', details: 'تمام وائٹلز چھِ مستحکم، کانٛہہ تہٕ پیچیدگی چھِ نہٕ لبنہٕ آمٕژ۔ روٹین چیک اپ۔' },
+                    'kok': { name: 'सीता देवी', village: 'रामनगर', details: 'सगळीं विटल्स स्थिर आसात, कसलीय गुंतागुंत मेळूंक ना. नेमान तपासणी.' },
+                    'mai': { name: 'सीता देवी', village: 'रामनगर', details: 'सभ वाइटल्स स्थिर अछि, कोनो जटिलता नहि भेटल। रूटीन चेक-अप।' },
+                    'ml-IN': { name: 'സീതാ ദേവി', village: 'രാംനഗർ', details: 'എല്ലാ സുപ്രധാന സൂചനകളും സ്ഥിരമാണ്, സങ്കീർണതകളൊന്നും കണ്ടെത്തിയിട്ടില്ല. പതിവ് പരിശോധന.' },
+                    'mni': { name: 'সীতা দেবী', village: 'রাম নগর', details: 'ভাইটাল পুম্নমক লেম্না লৈরি, অমাংবা অমত্তা থেংনদ্রি। মতম মতমগী চেক-আপ।' },
+                    'mr-IN': { name: 'सीता देवी', village: 'रामनगर', details: 'सर्व विटल्स स्थिर आहेत, कोणतीही गुंतागुंत आढळली नाही. नियमित तपासणी.' },
+                    'ne-NP': { name: 'सीता देवी', village: 'रामनगर', details: 'सबै भाइटलहरू स्थिर छन्, कुनै जटिलता पत्ता लागेन। नियमित जाँच।' },
+                    'or': { name: 'ସୀତା ଦେବୀ', village: 'ରାମନଗର', details: 'ସମସ୍ତ ଭାଇଟାଲ୍ ସ୍ଥିର, କୌଣସି ଜଟିଳତା ଚିହ୍ନଟ ହୋଇନାହିଁ। ନିୟମିତ ଯାଞ୍ଚ।' },
+                    'pa-IN': { name: 'ਸੀਤਾ ਦੇਵੀ', village: 'ਰਾਮਨਗਰ', details: 'ਸਾਰੇ ਵਾਈਟਲ ਸਥਿਰ ਹਨ, ਕੋਈ ਪੇਚੀਦਗੀ ਨਹੀਂ ਮਿਲੀ। ਰੁਟੀਨ ਚੈੱਕ-ਅੱਪ।' },
+                    'sa': { name: 'सीता देवी', village: 'रामनगरम्', details: 'सर्वे जीवनाङ्काः स्थिराः, कापि जटिलता न दृष्टा। नित्यं परीक्षणम्।' },
+                    'sat': { name: 'सीता देवी', village: 'रामनगर', details: 'जोतो भाइटल थिर गेया, चेৎ बाधा बांग ञेल लेना। साधारण जांच।' },
+                    'sd': { name: 'سيتا ديوي', village: 'رام نگر', details: 'سڀ وائيٽل مستحڪم آهن، ڪا به پيچيدگي نه ملي آهي. معمول جي چڪاس.' },
+                    'ta-IN': { name: 'சீதா தேவி', village: 'ராம்நகர்', details: 'அனைத்து உயிர்களும் நிலையானவை, சிக்கல்கள் எதுவும் கண்டறியப்படவில்லை. வழக்கமான பரிசோதனை.'},
+                    'te-IN': { name: 'సీతా దేవి', village: 'రాంనగర్', details: 'అన్ని ప్రాణాధారాలు స్థిరంగా ఉన్నాయి, ఏ సమస్యలూ కనుగొనబడలేదు. సాధారణ తనిఖీ.' },
+                    'ur-IN': { name: 'سیتا دیوی', village: 'رام نگر', details: 'تمام وائٹلز مستحคม ہیں، کوئی پیچیدگی نہیں پائی گئی۔ روٹین چیک اپ۔' }
+                },
+                history: [
+                     { week: 30, bp: '120/80', weight: '72kg', sugar: '91 mg/dL', notes: 'Routine check-up. No issues.', translations: {'hi-IN': { notes: 'नियमित जांच। कोई समस्या नहीं।'},'bn-IN': { notes: 'নিয়মিত চেক-আপ। কোন সমস্যা নেই।' }, 'pa-IN': { notes: 'ਰੁਟੀਨ ਚੈੱਕ-ਅੱਪ। ਕੋਈ ਸਮੱਸਿਆ ਨਹੀਂ।' }, 'gu-IN': { notes: 'નિયમિત તપાસ. કોઈ સમસ્યા નથી.' }, 'ta-IN': { notes: 'வழக்கமான பரிசோதனை. சிக்கல்கள் இல்லை.' }}}
+                ]
+            },
+            { 
+                id: 4, name: 'Kavita Singh', village: 'Patna', riskLevel: 'red', lastUpdated: '2 hours ago', 
+                details: 'Gestational diabetes detected. Requires urgent dietary counseling and specialist referral.',
+                translations: {
+                    'hi-IN': { name: 'कविता सिंह', village: 'पटना', details: 'गर्भकालीन मधुमेह का पता चला। तत्काल आहार परामर्श और विशेषज्ञ रेफरल की आवश्यकता है।' },
+                    'as': { name: 'কবিতা সিং', village: 'পাটনা', details: 'গৰ্ভকালীন ডায়েবেটিছ ধৰা পৰিছে। তৎকালীনভাৱে খাদ্যৰ পৰামৰ্শ আৰু বিশেষজ্ঞৰ ৰেফাৰেলৰ প্ৰয়োজন।' },
+                    'bn-IN': { name: 'কবিতা সিং', village: 'পাটনা', details: 'গর্ভকালীন ডায়াবেটিস সনাক্ত করা হয়েছে। জরুরি খাদ্যতালিকাগত পরামর্শ এবং বিশেষজ্ঞ রেফারেল প্রয়োজন।' },
+                    'brx': { name: 'कविता सिंह', village: 'पटना', details: 'गेस्टेशनल डायिबिटीज मोनदों। थाबैनो जाग्रा आरो बिज्ञानीनि सानसुमैनि गोनांथि दं।' },
+                    'doi': { name: 'कविता सिंह', village: 'पटना', details: 'गर्भकालीन मधुमेह दा पता लग्गा। फौरन आहार संबंधी सलाह ते विशेषज्ञ रेफरल दी लोड़ ऐ।' },
+                    'gu-IN': { name: 'કવિતા સિંહ', village: 'પટના', details: 'સગર્ભાવસ્થા ડાયાબિટીસ મળી. તાત્કાલિક આહાર પરામર્શ અને નિષ્ણાત રેફરલની જરૂર છે.'},
+                    'kn-IN': { name: 'ಕವಿತಾ ಸಿಂಗ್', village: 'ಪಾಟ್ನಾ', details: 'ಗರ್ಭಾವಸ್ಥೆಯ ಮಧುಮೇಹ ಪತ್ತೆಯಾಗಿದೆ. ತುರ್ತು ಆಹಾರ ಸಲಹೆ ಮತ್ತು ತಜ್ಞರ ಶಿಫಾರಸು ಅಗತ್ಯವಿದೆ.' },
+                    'ks': { name: 'کویتا سنگھ', village: 'پٹنہ', details: 'حملٕچ شوگر چھِ لبنہٕ آمٕژ۔ فَوراً چھُ غذٲئی مشورٕ تہٕ ماہرٕ سنٛد حوالہٕ ضروٗری۔' },
+                    'kok': { name: 'कविता सिंह', village: 'पटना', details: 'गरोदरपणांतलो मधुमेह सोदून काडलो. तात्काळ आहार मार्गदर्शनाची आनी विशेषज्ञ रेफरलाची गरज आसा.' },
+                    'mai': { name: 'कविता सिंह', village: 'पटना', details: 'गर्भकालीन मधुमेहक पता चलल। तत्काल आहार परामर्श आ विशेषज्ञ रेफरलक आवश्यकता अछि।' },
+                    'ml-IN': { name: 'കവിത സിംഗ്', village: 'പട്ന', details: 'ഗർഭകാല പ്രമേഹം കണ്ടെത്തി. അടിയന്തിര ഭക്ഷണ ഉപദേശവും സ്പെഷ്യലിസ്റ്റ് റഫറലും ആവശ്യമാണ്.' },
+                    'mni': { name: 'কবিতা সিং', village: 'পাটনা', details: 'গর্ভকালীন ডায়াবেটিস থেংনরে। অথুবদা চানবা থুংনবা অমসুং মরুওইবা চিকিৎসক অমগী রেফারেল মথৌ তাই।' },
+                    'mr-IN': { name: 'कविता सिंह', village: 'पटना', details: 'गर्भधारणेतील मधुमेह आढळला. त्वरित आहारविषयक समुपदेशन आणि तज्ञ रेफरल आवश्यक आहे.' },
+                    'ne-NP': { name: 'कविता सिंह', village: 'पटना', details: 'गर्भावस्थामा मधुमेह पत्ता लाग्यो। तत्काल आहार परामर्श र विशेषज्ञ रेफरल आवश्यक छ।' },
+                    'or': { name: 'କବିତା ସିଂ', village: 'ପାଟନା', details: 'ଗର୍ଭକାଳୀନ ମଧୁମେହ ଚିହ୍ନଟ ହୋଇଛି। ଜରୁରୀକାଳୀନ ଖାଦ୍ୟ ପରାମର୍ଶ ଏବଂ ବିଶେଷଜ୍ଞ ରେଫରାଲ୍ ଆବଶ୍ୟକ।' },
+                    'pa-IN': { name: 'ਕਵਿਤਾ ਸਿੰਘ', village: 'ਪਟਨਾ', details: 'ਗਰਭਕਾਲੀ ਸ਼ੂਗਰ ਦਾ ਪਤਾ ਲੱਗਿਆ। ਤੁਰੰਤ ਖੁਰਾਕ ਸੰਬੰਧੀ ਸਲਾਹ ਅਤੇ ਮਾਹਰ ਦੇ ਹਵਾਲੇ ਦੀ ਲੋੜ ਹੈ।' },
+                    'sa': { name: 'कविता सिंह', village: 'पटना', details: 'गर्भावस्थामधुमेहः ज्ञातः। सत्वरं आहारपरामर्शः विशेषज्ञनिर्देशः च आवश्यकः।' },
+                    'sat': { name: 'कविता सिंह', village: 'पटना', details: 'गर्भावस्था मधुमेह ञेल ञाम लेना। लागिड जोम सलाह आर विशेषज्ञ रेफरल दरकार।' },
+                    'sd': { name: 'ڪويتا سنگهه', village: 'پٽنا', details: 'حمل واري ذیابيطس معلوم ٿي. فوري طور تي غذائي صلاح ۽ ماهرن جي حوالي جي ضرورت آهي.' },
+                    'ta-IN': { name: 'கவிதா சிங்', village: 'பாட்னா', details: 'கர்ப்பகால நீரிழிவு நோய் கண்டறியப்பட்டது. அவசர உணவு ஆலோசனை மற்றும் நிபுணர் பரிந்துரை தேவை.'},
+                    'te-IN': { name: 'కవితా సింగ్', village: 'పాట్నా', details: 'గర్భధారణ మధుమేహం కనుగొనబడింది. తక్షణ ఆహార సలహా మరియు నిపుణుల రెఫరల్ అవసరం.' },
+                    'ur-IN': { name: 'کویتا سنگھ', village: 'پٹنہ', details: 'حمل کا ذیابیطس پایا گیا۔ فوری غذائی مشاورت اور ماہر کے حوالے کی ضرورت ہے۔' }
+                },
+                history: [
+                     { week: 25, bp: '130/88', weight: '75kg', sugar: '150 mg/dL', notes: 'High blood sugar detected.', translations: {'hi-IN': { notes: 'उच्च रक्त शर्करा का पता चला।'},'bn-IN': { notes: 'উচ্চ রক্তে শর্করা সনাক্ত করা হয়েছে।' }, 'pa-IN': { notes: 'ਹਾਈ ਬਲੱਡ ਸ਼ੂਗਰ ਦਾ ਪਤਾ ਲੱਗਿਆ।' }, 'gu-IN': { notes: 'હાઈ બ્લડ સુગર મળી આવ્યું છે.' }, 'ta-IN': { notes: 'அதிக இரத்த சர்க்கரை கண்டறியப்பட்டது.' }}}
+                ]
+            },
+            { 
+                id: 5, name: 'Asha Gupta', village: 'Jalalabad', riskLevel: 'green', lastUpdated: '1 day ago', 
+                details: 'Patient has been stable since last check. No issues found.',
+                translations: {
+                    'hi-IN': { name: 'आशा गुप्ता', village: 'जलालाबाद', details: 'पिछली जांच के बाद से मरीज स्थिर है। कोई समस्या नहीं मिली।' },
+                    'as': { name: 'আশা গুপ্তা', village: 'জালালাবাদ', details: 'যোৱা পৰীক্ষাৰ পৰা ৰোগী সুস্থিৰ হৈ আছে। কোনো সমস্যা পোৱা নাই।' },
+                    'bn-IN': { name: 'আশা গুপ্তা', village: 'জালালাবাদ', details: 'শেষ পরীক্ষার পর থেকে রোগী স্থিতিশীল। কোনো সমস্যা পাওয়া যায়নি।' },
+                    'brx': { name: 'आशा गुप्ता', village: 'जलालाबाद', details: 'जोबथा नायबिजिरनायनि उनाव बेरामिया थार दं। मोनसेबो जेंना मोनाखै।' },
+                    'doi': { name: 'आशा गुप्ता', village: 'जलालाबाद', details: 'पिछली जांच दे बाद थमां मरीज स्थिर ऐ। कोई मसला नेईं लब्भा।' },
+                    'gu-IN': { name: 'આશા ગુપ્તા', village: 'જલાલાબાદ', details: 'છેલ્લી તપાસ બાદ દર્દીની હાલત સ્થિર છે. કોઈ સમસ્યા મળી નથી.'},
+                    'kn-IN': { name: 'ಆಶಾ ಗುಪ್ತಾ', village: 'ಜಲಾಲಾಬಾದ್', details: 'ಕಳೆದ ತಪಾಸಣೆಯಿಂದ ರೋಗಿಯು ಸ್ಥಿರವಾಗಿದ್ದಾರೆ. ಯಾವುದೇ ಸಮಸ್ಯೆಗಳು ಕಂಡುಬಂದಿಲ್ಲ.' },
+                    'ks': { name: 'آشا گپتا', village: 'جلال آباد', details: 'مریض چھُ  Gàidhlig پٲٹھۍ مستحکم۔ کانٛہہ تہٕ مسئلہٕ چھُ نہٕ لبنہٕ آمُت۔' },
+                    'kok': { name: 'आशा गुप्ता', village: 'जलालाबाद', details: 'निमाण्या तपासणे उपरांत रुग्ण स्थिर आसा. कसलीय अडचण मेळूंक ना.' },
+                    'mai': { name: 'आशा गुप्ता', village: 'जलालाबाद', details: 'पिछला जांच के बाद सँ रोगी स्थिर अछि। कोनो समस्या नहि भेटल।' },
+                    'ml-IN': { name: 'ആശാ ഗുപ്ത', village: 'ജലാലാബാദ്', details: 'കഴിഞ്ഞ പരിശോധന മുതൽ രോഗിയുടെ നില തൃപ്തികരമാണ്. പ്രശ്നങ്ങളൊന്നും കണ്ടെത്തിയിട്ടില്ല.' },
+                    'mni': { name: 'আশা গুপ্তা', village: 'জালালাবাদ', details: 'হৌজিক চেক তৌরবা মতুংদগী অনাবগী ফিবম লেম্না লৈরি। সমস্যা অমত্তা থেংনদ্রি।' },
+                    'mr-IN': { name: 'आशा गुप्ता', village: 'जलालाबाद', details: 'गेल्या तपासणीपासून रुग्ण स्थिर आहे. कोणतीही समस्या आढळली नाही.' },
+                    'ne-NP': { name: 'आशा गुप्ता', village: 'जलालाबाद', details: 'पछिल्लो जाँचदेखि बिरामी स्थिर छन्। कुनै समस्या भेटिएन।' },
+                    'or': { name: 'ଆଶା ଗୁପ୍ତା', village: 'ଜଲାଲାବାଦ', details: 'ଗତ ଯାଞ୍ଚ ପରଠାରୁ ରୋଗୀ ସ୍ଥିର ଅଛନ୍ତି। କୌଣସି ସମସ୍ୟା ମିଳିଲା ନାହିଁ।' },
+                    'pa-IN': { name: 'ਆਸ਼ਾ ਗੁਪਤਾ', village: 'ਜਲਾਲਾਬਾਦ', details: 'ਪਿਛਲੀ ਜਾਂਚ ਤੋਂ ਬਾਅਦ ਮਰੀਜ਼ ਸਥਿਰ ਹੈ। ਕੋਈ ਸਮੱਸਿਆ ਨਹੀਂ ਮਿਲੀ।' },
+                    'sa': { name: 'आशा गुप्ता', village: 'जलालाबाद्', details: 'अन्तिमपरीक्षातः परं रुग्णः स्थिरः अस्ति। कापि समस्या न प्राप्ता।' },
+                    'sat': { name: 'आशा गुप्ता', village: 'जलालाबाद', details: 'पाछला जांच खातिर रोगी थिर गेया। चेৎ बाधा बांग ञाम लेना।' },
+                    'sd': { name: 'آشا گپتا', village: 'جلال آباد', details: 'مريض آخري چيڪ اپ کان پوءِ مستحڪم آهي. ڪو مسئلو نه مليو.' },
+                    'ta-IN': { name: 'ஆஷா குப்தா', village: 'ஜலாலாபாத்', details: 'கடைசி பரிசோதனையில் இருந்து நோயாளி சீராக உள்ளார். சிக்கல்கள் எதுவும் கண்டறியப்படவில்லை.'},
+                    'te-IN': { name: 'ఆశా గుప్తా', village: 'జలాలాబాద్', details: 'గత తనిఖీ నుండి రోగి స్థిరంగా ఉన్నారు. ఏ సమస్యలూ కనుగొనబడలేదు.' },
+                    'ur-IN': { name: 'آشا گپتا', village: 'جلال آباد', details: 'آخری چیک اپ کے بعد سے مریض مستحคม ہے۔ کوئی مسئلہ نہیں ملا۔' }
+                },
+                history: []
+            },
+            { 
+                id: 6, name: 'Sunita Meena', village: 'Haridwar', riskLevel: 'yellow', lastUpdated: '2 days ago', 
+                details: 'Slightly anemic. Prescribed iron supplements. Requires follow-up in two weeks.',
+                translations: {
+                    'hi-IN': { name: 'सुनीता मीणा', village: 'हरिद्वार', details: 'थोड़ा एनीमिक। आयरन सप्लीमेंट निर्धारित। दो सप्ताह में फॉलो-अप की आवश्यकता है।' },
+                    'as': { name: 'সুনীতা মীনা', village: 'হৰিদ্বাৰ', details: 'অলপ এনিমিক। আইৰণ চাপ্লিমেণ্ট দিয়া হৈছে। দুই সপ্তাহৰ ভিতৰত ফ\'ল-আপৰ প্ৰয়োজন।' },
+                    'bn-IN': { name: 'সুনিতা মীনা', village: 'হরিদ্বার', details: 'সামান্য রক্তাল্পতা। আয়রন সাপ্লিমেন্ট প্রেসক্রাইব করা হয়েছে। দুই সপ্তাহের মধ্যে ফলো-আপ প্রয়োজন।' },
+                    'brx': { name: 'सुनीता मीणा', village: 'हरिद्वार', details: 'खाम एनिमिक। आयरन सप्लीमेन्टनि सानसुमै होदों। नै सप्ताहनि उनाव फलो-अपनि गोनांथि दं।' },
+                    'doi': { name: 'सुनीता मीणा', village: 'हरिद्वार', details: 'थوڑا एनीमिक। आयरन सप्लीमेंट दित्ते गेदे न। दो हफ्ते च फॉलो-अप दी लोड़ ऐ।' },
+                    'gu-IN': { name: 'સુનીતા મીના', village: 'હરિદ્વાર', details: 'થોડું એનિમિક. આયર્ન સપ્લિમેન્ટ્સ સૂચવવામાં આવે છે. બે અઠવાડિયામાં ફોલો-અપની જરૂર છે.'},
+                    'kn-IN': { name: 'ಸುನೀತಾ ಮೀನಾ', village: 'ಹರಿದ್ವಾರ', details: 'ಸ್ವಲ್ಪ ರಕ್ತಹೀನತೆ. ಕಬ್ಬಿಣದ ಪೂರಕಗಳನ್ನು ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ. ಎರಡು ವಾರಗಳಲ್ಲಿ ಅನುಸರಣೆ ಅಗತ್ಯವಿದೆ.' },
+                    'ks': { name: 'سُنیتا مِینا', village: 'ہری دوار', details: 'وُنیُک انیمک۔ آئرن سپلیمنٹس چھِ تجویز کرنہٕ آمٕتہِ۔ زٕ ہفتَن مَنٛز چھُ فالو اپ ضروٗری۔' },
+                    'kok': { name: 'सुनीता मीणा', village: 'हरिद्वार', details: 'थोडेशें अशक्त. लोहाचीं पुरवणीं बरयल्यांत. दोन सप्तकां भितर फॉलो-अपची गरज आसा.' },
+                    'mai': { name: 'सुनीता मीणा', village: 'हरिद्वार', details: 'किछु एनीमिक। आयरन सप्लीमेंट निर्धारित। दू सप्ताह मे फॉलो-अपक आवश्यकता अछि।' },
+                    'ml-IN': { name: 'സുനിതാ മീണ', village: 'ഹരിദ്വാർ', details: 'ചെറിയ തോതിലുള്ള വിളർച്ച. ഇരുമ്പ് സപ്ലിമെന്റുകൾ നിർദ്ദേശിച്ചു. രണ്ടാഴ്ചയ്ക്കുള്ളിൽ ഫോളോ-അപ്പ് ആവശ്യമാണ്.' },
+                    'mni': { name: 'সুনিতা মীনা', village: 'হরিদ্বার', details: 'খরা এনিমিক। আয়রন সপ্লিমেন্ট প্রেস্ক্রাইব তৌরে। চয়োল অনিগী মনুংদা ফলো-অপ মথৌ তাই।' },
+                    'mr-IN': { name: 'सुनीता मीना', village: 'हरिद्वार', details: 'थोडी अशक्त. लोह पूरक औषधे लिहून दिली आहेत. दोन आठवड्यांत फॉलो-अप आवश्यक आहे.' },
+                    'ne-NP': { name: 'सुनीता मीणा', village: 'हरिद्वार', details: 'थोरै रक्ताल्पता। आइरन सप्लिमेन्ट सिफारिस गरियो। दुई हप्तामा फलो-अप आवश्यक छ।' },
+                    'or': { name: 'ସୁନୀତା ମୀନା', village: 'ହରିଦ୍ୱାର', details: 'ଅଳ୍ପ ରକ୍ତହୀନ। ଆଇରନ୍ ସପ୍ଲିମେଣ୍ଟ୍ସ ଦିଆଯାଇଛି। ଦୁଇ ସପ୍ତାହ ମଧ୍ୟରେ ଫଲୋ-ଅପ୍ ଆବଶ୍ୟକ।' },
+                    'pa-IN': { name: 'ਸੁਨੀਤਾ ਮੀਨਾ', village: 'ਹਰਿਦੁਆਰ', details: 'ਥੋੜ੍ਹਾ ਅਨੀਮਿਕ। ਆਇਰਨ ਸਪਲੀਮੈਂਟਸ ਤਜਵੀਜ਼ ਕੀਤੇ ਗਏ। ਦੋ ਹਫ਼ਤਿਆਂ ਵਿੱਚ ਫਾਲੋ-ਅੱਪ ਦੀ ਲੋੜ ਹੈ।' },
+                    'sa': { name: 'सुनीता मीना', village: 'हरिद्वारम्', details: 'किञ्चित् पाण्डुरोगः। लौहपूरकाणि निर्धारितानि। द्वाभ्यां सप्ताहाभ्यां अनुसरणं आवश्यकम्।' },
+                    'sat': { name: 'सुनीता मीणा', village: 'हरिद्वार', details: 'खारा एनिमिक। आयरन सप्लीमेंट सलाह लेना। बार हफ्ता रे फॉलो-अप दरकार।' },
+                    'sd': { name: 'سنيتا مينا', village: 'هردوار', details: 'ٿورڙو انيمڪ. لوهه جي سپليمنٽس تجويز ڪيل. ٻن هفتن ۾ فالو اپ جي ضرورت آهي.' },
+                    'ta-IN': { name: 'சுனிதா மீனா', village: 'ஹரித்வார்', details: 'சற்று இரத்த சோகை. இரும்புச் சத்து மருந்துகள் பரிந்துரைக்கப்படுகின்றன. இரண்டு வாரங்களில் பின்தொடர்தல் தேவை.'},
+                    'te-IN': { name: 'సునీతా మీనా', village: 'హరిద్వార్', details: 'కొద్దిగా రక్తహీనత. ఐరన్ సప్లిమెంట్లు సూచించబడ్డాయి. రెండు వారాల్లో ఫాలో-అప్ అవసరం.' },
+                    'ur-IN': { name: 'سنیتا مینا', village: 'ہریدوار', details: 'ہلکی سی انیمک۔ آئرن سپلیمنٹس تجویز کیے گئے۔ دو ہفتوں میں فالو اپ کی ضرورت ہے۔' }
+                },
+                history: [
+                     { week: 18, bp: '118/78', weight: '63kg', sugar: '88 mg/dL', notes: 'Patient showing signs of anemia.', translations: {'hi-IN': { notes: 'रोगी में एनीमिया के लक्षण दिख रहे हैं।'},'bn-IN': { notes: 'রোগীর মধ্যে রক্তাল্পতার লক্ষণ দেখা যাচ্ছে।' }, 'pa-IN': { notes: 'ਮਰੀਜ਼ ਅਨੀਮੀਆ ਦੇ ਲੱਛਣ ਦਿਖਾ ਰਿਹਾ ਹੈ।' }, 'gu-IN': { notes: 'દર્દી એનિમિયાના ચિહ્નો દર્શાવે છે.' }, 'ta-IN': { notes: 'நோயாளிக்கு இரத்த சோகையின் அறிகுறிகள் தென்படுகின்றன.' }}}
+                ]
+            },
+        ];
+        
+        const indianLanguages = [
+            { name: 'Select Language', code: '' },
+            { name: 'English', code: 'en-IN' },
+            { name: 'हिन्दी', code: 'hi-IN' }, // Hindi
+            { name: 'অসমীয়া', code: 'as' }, // Assamese
+            { name: 'বাংলা', code: 'bn-IN' }, // Bengali
+            { name: 'बोडो', code: 'brx' }, // Bodo
+            { name: 'डोगरी', code: 'doi' }, // Dogri
+            { name: 'ગુજરાતી', code: 'gu-IN' }, // Gujarati
+            { name: 'ಕನ್ನಡ', code: 'kn-IN' }, // Kannada
+            { name: 'कश्मीरी', code: 'ks' }, // Kashmiri
+            { name: 'कोंकणी', code: 'kok' }, // Konkani
+            { name: 'मैथिली', code: 'mai' }, // Maithili
+            { name: 'മലയാളം', code: 'ml-IN' }, // Malayalam
+            { name: 'মেইতেই', code: 'mni' }, // Manipuri
+            { name: 'मराठी', code: 'mr-IN' }, // Marathi
+            { name: 'नेपाली', code: 'ne-NP' }, // Nepali
+            { name: 'ଓଡ଼ିଆ', code: 'or' }, // Odia
+            { name: 'ਪੰਜਾਬੀ', code: 'pa-IN' }, // Punjabi
+            { name: 'संस्कृतम्', code: 'sa' }, // Sanskrit
+            { name: 'संताली', code: 'sat' }, // Santali
+            { name: 'सिन्धी', code: 'sd' }, // Sindhi
+            { name: 'தமிழ்', code: 'ta-IN' }, // Tamil
+            { name: 'తెలుగు', code: 'te-IN' }, // Telugu
+            { name: 'اردو', code: 'ur-IN' } // Urdu
+        ];
+
+        const uiLanguages = indianLanguages.filter(lang => lang.code); // Filter out the 'Select Language' placeholder
+        
+        const uiTranslations = {
+            'en-IN': {
+                dashboard_title: 'MaaS Dashboard',
+                dashboard_subtitle: 'Prioritized Monitoring of Rural Pregnancy Cases',
+                high_risk: 'High Risk', medium_risk: 'Medium Risk', low_risk: 'Low Risk',
+                search_placeholder: 'Search by name or village...',
+                village_label: 'Village:', last_updated_label: 'Last Updated:',
+                add_patient_btn: 'Add New Patient',
+                add_new_patient_title: 'Add New Patient',
+                form_name_label: 'Full Name',
+                form_village_label: 'Village',
+                form_risk_label: 'Risk Level',
+                form_details_label: 'Symptoms / Details',
+                add_translations_label: 'Add Translations (Optional)',
+                cancel_btn: 'Cancel',
+                save_patient_btn: 'Save Patient',
+                history_title: 'Weekly History',
+                add_entry_btn: 'Add Entry',
+                add_entry_title: 'Add Weekly Entry',
+                week_label: 'Week (1-41)',
+                bp_label: 'Blood Pressure (e.g., 120/80)',
+                weight_label: 'Weight (e.g., 65kg)',
+                sugar_label: 'Blood Sugar (e.g., 90 mg/dL)',
+                notes_label: 'Notes',
+                save_entry_btn: 'Save Entry',
+                no_history: 'No history entries yet.',
+                week_label_short: 'Week',
+                bp_label_short: 'BP',
+                weight_label_short: 'Wt',
+                sugar_label_short: 'Sugar',
+                read_aloud_title: 'Read Patient Details Aloud',
+                play_audio_btn: 'Play Audio',
+                translator_title: 'Live Conversation Translator',
+                note_title: 'Note:',
+                note_body: 'This is a simplified demonstration. Real-time speech recognition requires a secure (HTTPS) connection to function.',
+                translator_instruction: "Select patient's language above. Use the record buttons to translate speech.",
+                asha_worker_label: 'ASHA Worker (English)',
+                patient_label: 'Patient',
+                record_btn: 'Record',
+                stop_btn: 'Stop',
+                simulate_call_btn: 'Simulate Call',
+                simulate_sms_btn: 'Simulate SMS'
+            },
+            'hi-IN': {
+                dashboard_title: 'मास डैशबोर्ड',
+                dashboard_subtitle: 'ग्रामीण गर्भावस्था मामलों की प्राथमिकता वाली निगरानी',
+                high_risk: 'उच्च जोखिम', medium_risk: 'मध्यम जोखिम', low_risk: 'कम जोखिम',
+                search_placeholder: 'नाम या गांव से खोजें...',
+                village_label: 'गाँव:', last_updated_label: 'अंतिम अपडेट:',
+                add_patient_btn: 'नया मरीज जोड़ें',
+                add_new_patient_title: 'नया मरीज जोड़ें',
+                form_name_label: 'पूरा नाम',
+                form_village_label: 'गाँव',
+                form_risk_label: 'जोखिम स्तर',
+                form_details_label: 'लक्षण / विवरण',
+                add_translations_label: 'अनुवाद जोड़ें (वैकल्पिक)',
+                cancel_btn: 'रद्द करें',
+                save_patient_btn: 'मरीज सहेजें',
+                history_title: 'साप्ताहिक इतिहास',
+                add_entry_btn: 'प्रविष्टि जोड़ें',
+                add_entry_title: 'साप्ताहिक प्रविष्टि जोड़ें',
+                week_label: 'सप्ताह (1-41)',
+                bp_label: 'रक्तचाप (उदा. 120/80)',
+                weight_label: 'वजन (उदा. 65kg)',
+                sugar_label: 'रक्त शर्करा (उदा. 90 mg/dL)',
+                notes_label: 'टिप्पणियाँ',
+                save_entry_btn: 'प्रविष्टि सहेजें',
+                no_history: 'अभी तक कोई इतिहास प्रविष्टियाँ नहीं हैं।',
+                week_label_short: 'सप्ताह',
+                bp_label_short: 'बीपी',
+                weight_label_short: 'वजन',
+                sugar_label_short: 'शुगर',
+                read_aloud_title: 'मरीज का विवरण जोर से पढ़ें',
+                play_audio_btn: 'ऑडियो चलाएं',
+                translator_title: 'लाइव वार्तालाप अनुवादक',
+                note_title: 'ध्यान दें:',
+                note_body: 'यह एक सरलीकृत प्रदर्शन है। रीयल-टाइम वाक् पहचान के लिए एक सुरक्षित (HTTPS) कनेक्शन की आवश्यकता होती है।',
+                translator_instruction: "ऊपर रोगी की भाषा चुनें। भाषण का अनुवाद करने के लिए रिकॉर्ड बटन का उपयोग करें।",
+                asha_worker_label: 'आशा कार्यकर्ता (अंग्रेजी)',
+                patient_label: 'मरीज़',
+                record_btn: 'रिकॉर्ड',
+                stop_btn: 'रोकें',
+                simulate_call_btn: 'कॉल का अनुकरण करें',
+                simulate_sms_btn: 'एसएमएस का अनुकरण करें'
+            },
+            'as': {
+                dashboard_title: 'মাচ ডেশ্বৰ্ড',
+                dashboard_subtitle: 'গ্ৰাম্য গৰ্ভাৱস্থাৰ ঘটনাসমূহৰ অগ্ৰাধিকাৰ নিৰীক্ষণ',
+                high_risk: 'উচ্চ বিপদাশংকা', medium_risk: 'मध्यम বিপদাশংকা', low_risk: 'কম বিপদাশংকা',
+                search_placeholder: 'নাম বা গাঁৱৰ দ্বাৰা সন্ধান কৰক...',
+                village_label: 'গাঁও:', last_updated_label: 'শেষ আপডেট:',
+                add_patient_btn: 'নতুন ৰোগী যোগ কৰক',
+                add_new_patient_title: 'নতুন ৰোগী যোগ কৰক',
+                form_name_label: 'সম্পূৰ্ণ নাম',
+                form_village_label: 'গাঁও',
+                form_risk_label: 'বিপদাশংকা স্তৰ',
+                form_details_label: 'লক্ষণ / বিৱৰণ',
+                add_translations_label: 'অনুবাদ যোগ কৰক (বৈকল্পিক)',
+                cancel_btn: 'বাতিল কৰক',
+                save_patient_btn: 'ৰোগী সংৰক্ষণ কৰক',
+                history_title: 'সাপ্তাহিক ইতিহাস',
+                add_entry_btn: 'প্ৰবিষ্টি যোগ কৰক',
+                add_entry_title: 'সাপ্তাহিক প্ৰবিষ্টি যোগ কৰক',
+                week_label: 'সপ্তাহ (১-৪১)',
+                bp_label: 'ৰক্তচাপ (যেনে, ১২০/৮০)',
+                weight_label: 'ওজন (যেনে, ৬৫ কেজি)',
+                sugar_label: 'ৰক্ত শৰ্কৰা (যেনে, ৯০ মিগ্ৰা/ডিএল)',
+                notes_label: 'টোকা',
+                save_entry_btn: 'প্ৰবিষ্টি সংৰক্ষণ কৰক',
+                no_history: 'এতিয়ালৈকে কোনো ইতিহাস প্ৰবিষ্টি নাই।',
+                week_label_short: 'সপ্তাহ',
+                bp_label_short: 'ৰক্তচাপ',
+                weight_label_short: 'ওজন',
+                sugar_label_short: 'শৰ্কৰা',
+                read_aloud_title: 'ৰোগীৰ বিৱৰণ ডাঙৰকৈ পঢ়ক',
+                play_audio_btn: 'অডিঅ’ প্লে কৰক',
+                translator_title: 'লাইভ বাৰ্তালাপ অনুবাদক',
+                note_title: 'টোকা:',
+                note_body: 'এইটো এটা সৰলীকৃত প্ৰদৰ্শন। ৰিয়েল-টাইম বক্তৃতা চিনাক্তকৰণৰ বাবে এটা সুৰক্ষিত (HTTPS) সংযোগৰ প্ৰয়োজন।',
+                translator_instruction: "ওপৰত ৰোগীৰ ভাষা বাছনি কৰক। ভাষণ অনুবাদ কৰিবলৈ ৰেকৰ্ড বুটাম ব্যৱহাৰ কৰক।",
+                asha_worker_label: 'आशा কৰ্মী (ইংৰাজী)',
+                patient_label: 'ৰোগী',
+                record_btn: 'ৰেকৰ্ড',
+                stop_btn: 'বন্ধ কৰক',
+                simulate_call_btn: 'কল অনুৰূপণ কৰক',
+                simulate_sms_btn: 'এছএমএছ অনুৰূপণ কৰক'
+            },
+            'bn-IN': {
+                dashboard_title: 'মাস ড্যাশবোর্ড',
+                dashboard_subtitle: 'গ্রামীণ গর্ভাবস্থার ক্ষেত্রে অগ্রাধিকারমূলক পর্যবেক্ষণ',
+                high_risk: 'উচ্চ ঝুঁকি', medium_risk: 'মাঝারি ঝুঁকি', low_risk: 'নিম্ন ঝুঁকি',
+                search_placeholder: 'নাম বা গ্রাম দ্বারা অনুসন্ধান করুন...',
+                village_label: 'গ্রাম:', last_updated_label: 'শেষ আপডেট:',
+                add_patient_btn: 'নতুন রোগী যোগ করুন',
+                add_new_patient_title: 'নতুন রোগী যোগ করুন',
+                form_name_label: 'পুরো নাম',
+                form_village_label: 'গ্রাম',
+                form_risk_label: 'ঝুঁকির স্তর',
+                form_details_label: 'লক্ষণ / বিবরণ',
+                add_translations_label: 'অনুবাদ যোগ করুন (ঐচ্ছিক)',
+                cancel_btn: 'বাতিল করুন',
+                save_patient_btn: 'রোগী সংরক্ষণ করুন',
+                history_title: 'সাপ্তাহিক ইতিহাস',
+                add_entry_btn: 'এন্ট্রি যোগ করুন',
+                add_entry_title: 'সাপ্তাহিক এন্ট্রি যোগ করুন',
+                week_label: 'সপ্তাহ (1-41)',
+                bp_label: 'রক্তচাপ (যেমন, 120/80)',
+                weight_label: 'ওজন (যেমন, 65kg)',
+                sugar_label: 'রক্তের চিনি (যেমন, 90 mg/dL)',
+                notes_label: 'নোট',
+                save_entry_btn: 'এন্ট্রি সংরক্ষণ করুন',
+                no_history: 'এখনও কোন ইতিহাস এন্ট্রি নেই।',
+                week_label_short: 'সপ্তাহ',
+                bp_label_short: 'বিপি',
+                weight_label_short: 'ওজন',
+                sugar_label_short: 'চিনি',
+                read_aloud_title: 'রোগীর বিবরণ জোরে পড়ুন',
+                play_audio_btn: 'অডিও চালান',
+                translator_title: 'লাইভ কথোপকথন অনুবাদক',
+                note_title: 'বিঃদ্রঃ:',
+                note_body: 'এটি একটি সরলীকৃত প্রদর্শন। রিয়েল-টাইম স্পিচ স্বীকৃতির জন্য একটি সুরক্ষিত (HTTPS) সংযোগ প্রয়োজন।',
+                translator_instruction: "উপরে রোগীর ভাষা নির্বাচন করুন। বক্তৃতা অনুবাদ করতে রেকর্ড বোতাম ব্যবহার করুন।",
+                asha_worker_label: 'आशा কর্মী (ইংরেজি)',
+                patient_label: 'রোগী',
+                record_btn: 'রেকর্ড',
+                stop_btn: 'থামুন',
+                simulate_call_btn: 'কল সিমুলেট করুন',
+                simulate_sms_btn: 'এসএমএস সিমুলেট করুন'
+            },
+             'brx': {
+                dashboard_title: 'मास डेशबोर्ड',
+                dashboard_subtitle: 'गामियारि गोग्लैनाय केसफोरखौ प्रायोरिटाइज्ड नायबिजिरनाय',
+                high_risk: 'बारा जोखोम', medium_risk: 'गेजेर जोखोम', low_risk: 'खाम जोखोम',
+                search_placeholder: 'मुं एबा गामिखौ लानानै नागिर...',
+                village_label: 'गामि:', last_updated_label: 'जोबथा अपडेट:',
+                add_patient_btn: 'गोदान बेरामी थिसन',
+                add_new_patient_title: 'गोदान बेरामी थिसन',
+                form_name_label: 'आबुं मुं',
+                form_village_label: 'गामि',
+                form_risk_label: 'जोखोमनि थाखो',
+                form_details_label: 'लक्षण / बिजिरनाय',
+                add_translations_label: 'सोदोबथाय थिसन (बाहाय)',
+                cancel_btn: 'रद्द खालाम',
+                save_patient_btn: 'बेरामीखौ सेभ खालाम',
+                history_title: 'साप्ताहिक इतिहास',
+                add_entry_btn: 'थिसन खालाम',
+                add_entry_title: 'साप्ताहिक थिसन खालाम',
+                week_label: 'सप्ताह (1-41)',
+                bp_label: 'थेर दबाब (मादि, 120/80)',
+                weight_label: 'अजन (मादि, 65kg)',
+                sugar_label: 'थेरनि सुगार (मादि, 90 mg/dL)',
+                notes_label: 'नोट',
+                save_entry_btn: 'थिसनखौ सेभ खालाम',
+                no_history: 'दासिमबो इतिहासनि थिसन गैया।',
+                week_label_short: 'सप्ताह',
+                bp_label_short: 'थेर दबाब',
+                weight_label_short: 'अजन',
+                sugar_label_short: 'सुगार',
+                read_aloud_title: 'बेरामीनि बिजिरनायखौ गिदिरै फराय',
+                play_audio_btn: 'अडिअ प्ले खालाम',
+                translator_title: 'लाइभ सावरायनाय सोदोबथाय',
+                note_title: 'नोट:',
+                note_body: 'बेयो मोनसे साधारन दिन्थिनायसो। रियल-टाइम सावरायनाय सिनायथिनि थाखाय मोनसे सुरक्षित (HTTPS) जरायनि गोनांथि दं।',
+                translator_instruction: "सायाव बेरामीनि रावखौ सायख। सावरायनायखौ सोदोबथाय खालामनो थाखाय रेकर्ड बाटनखौ बाहाय।",
+                asha_worker_label: 'आशा खामि (इंग्लिश)',
+                patient_label: 'बेरामी',
+                record_btn: 'रेकर्ड',
+                stop_btn: 'थोनाय',
+                simulate_call_btn: 'कल दिन्थि',
+                simulate_sms_btn: 'एसएमएस दिन्थि'
+            },
+            'doi': {
+                dashboard_title: 'मास डैशबोर्ड',
+                dashboard_subtitle: 'देहाती गर्भावस्था दे मामलें दी प्राथमिकता दी निगरानी',
+                high_risk: 'उच्च जोखिम', medium_risk: 'मध्यम जोखिम', low_risk: 'घट्ट जोखिम',
+                search_placeholder: 'नां जां ग्रां कन्नै लब्भो...',
+                village_label: 'ग्रां:', last_updated_label: 'पिछला अपडेट:',
+                add_patient_btn: 'नमां मरीज जोड़ो',
+                add_new_patient_title: 'नमां मरीज जोड़ो',
+                form_name_label: 'पूरा नां',
+                form_village_label: 'ग्रां',
+                form_risk_label: 'जोखिम दा स्तर',
+                form_details_label: 'लक्षण / ब्यौरा',
+                add_translations_label: 'अनुवाद जोड़ो (वैकल्पिक)',
+                cancel_btn: 'रद्द करो',
+                save_patient_btn: 'मरीज बचाओ',
+                history_title: 'हफ्तावार इतिहास',
+                add_entry_btn: 'एंट्री जोड़ो',
+                add_entry_title: 'हफ्तावार एंट्री जोड़ो',
+                week_label: 'हफ्ता (1-41)',
+                bp_label: 'ब्लड प्रेशर (मिसाल, 120/80)',
+                weight_label: 'भजन (मिसाल, 65kg)',
+                sugar_label: 'ब्लड शुगर (मिसाल, 90 mg/dL)',
+                notes_label: 'नोट',
+                save_entry_btn: 'एंट्री बचाओ',
+                no_history: 'कोई इतिहास एंट्री नेईं ऐ।',
+                week_label_short: 'हफ्ता',
+                bp_label_short: 'बीपी',
+                weight_label_short: 'भजन',
+                sugar_label_short: 'शुगर',
+                read_aloud_title: 'मरीज दे ब्यौरे जोर कन्नै पढ़ो',
+                play_audio_btn: 'ऑडियो चलाओ',
+                translator_title: 'लाइव गल्लबात अनुवादक',
+                note_title: 'नोट:',
+                note_body: 'एह् इक सरलीकृत प्रदर्शन ऐ। रियल-टाइम भाषण दी पन्छान आस्तै इक सुरक्षित (HTTPS) कनेक्शन दी लोड़ ऐ।',
+                translator_instruction: "उप्पर मरीज दी भाशा चुनो। भाषण दा अनुवाद करने आस्तै रिकॉर्ड बटन दा इस्तेमाल करो।",
+                asha_worker_label: 'आशा कार्यकर्ता (अंग्रेजी)',
+                patient_label: 'मरीज',
+                record_btn: 'रिकॉर्ड',
+                stop_btn: 'रोको',
+                simulate_call_btn: 'कॉल दी नकल करो',
+                simulate_sms_btn: 'एसएमएस दी नकल करो'
+            },
+            'pa-IN': {
+                dashboard_title: 'ਮਾਸ ਡੈਸ਼ਬੋਰਡ',
+                dashboard_subtitle: 'ਪੇਂਡੂ ਗਰਭ ਅਵਸਥਾ ਦੇ ਮਾਮਲਿਆਂ ਦੀ ਤਰਜੀਹੀ ਨਿਗਰਾਨੀ',
+                high_risk: 'ਉੱਚ ਜੋਖਮ', medium_risk: 'ਦਰਮਿਆਨਾ ਜੋਖਮ', low_risk: 'ਘੱਟ ਜੋਖਮ',
+                search_placeholder: 'ਨਾਮ ਜਾਂ ਪਿੰਡ ਦੁਆਰਾ ਖੋਜ ਕਰੋ...',
+                village_label: 'ਪਿੰਡ:', last_updated_label: 'ਆਖਰੀ ਅੱਪਡੇਟ:',
+                add_patient_btn: 'ਨਵਾਂ ਮਰੀਜ਼ ਸ਼ਾਮਲ ਕਰੋ',
+                add_new_patient_title: 'ਨਵਾਂ ਮਰੀਜ਼ ਸ਼ਾਮਲ ਕਰੋ',
+                form_name_label: 'ਪੂਰਾ ਨਾਂ',
+                form_village_label: 'ਪਿੰਡ',
+                form_risk_label: 'ਜੋਖਮ ਦਾ ਪੱਧਰ',
+                form_details_label: 'ਲੱਛਣ / ਵੇਰਵੇ',
+                add_translations_label: 'ਅਨੁਵਾਦ ਸ਼ਾਮਲ ਕਰੋ (ਵਿਕਲਪਿਕ)',
+                cancel_btn: 'ਰੱਦ ਕਰੋ',
+                save_patient_btn: 'ਮਰੀਜ਼ ਨੂੰ ਸੁਰੱਖਿਅਤ ਕਰੋ',
+                history_title: 'ਹਫਤਾਵਾਰੀ ਇਤਿਹਾਸ',
+                add_entry_btn: 'ਐਂਟਰੀ ਸ਼ਾਮਲ ਕਰੋ',
+                add_entry_title: 'ਹਫਤਾਵਾਰੀ ਐਂਟਰੀ ਸ਼ਾਮਲ ਕਰੋ',
+                week_label: 'ਹਫ਼ਤਾ (1-41)',
+                bp_label: 'ਬਲੱਡ ਪ੍ਰੈਸ਼ਰ (ਉਦਾਹਰਨ, 120/80)',
+                weight_label: 'ਭਾਰ (ਉਦਾਹਰਨ, 65kg)',
+                sugar_label: 'ਬਲੱਡ ਸ਼ੂਗਰ (ਉਦਾਹਰਨ, 90 mg/dL)',
+                notes_label: 'ਨੋਟਸ',
+                save_entry_btn: 'ਐਂਟਰੀ ਸੁਰੱਖਿਅਤ ਕਰੋ',
+                no_history: 'ਅਜੇ ਤੱਕ ਕੋਈ ਇਤਿਹਾਸ ਐਂਟਰੀਆਂ ਨਹੀਂ ਹਨ।',
+                week_label_short: 'ਹਫ਼ਤਾ',
+                bp_label_short: 'ਬੀਪੀ',
+                weight_label_short: 'ਭਾਰ',
+                sugar_label_short: 'ਸ਼ੂਗਰ',
+                read_aloud_title: 'ਮਰੀਜ਼ ਦੇ ਵੇਰਵੇ ਉੱਚੀ ਆਵਾਜ਼ ਵਿੱਚ ਪੜ੍ਹੋ',
+                play_audio_btn: 'ਆਡੀਓ ਚਲਾਓ',
+                translator_title: 'ਲਾਈਵ ਗੱਲਬਾਤ ਅਨੁਵਾਦਕ',
+                note_title: 'ਨੋਟ:',
+                note_body: 'ਇਹ ਇੱਕ ਸਰਲ ਪ੍ਰਦਰਸ਼ਨ ਹੈ। ਰੀਅਲ-ਟਾਈਮ ਸਪੀਚ ਪਛਾਣ ਲਈ ਇੱਕ ਸੁਰੱਖਿਅਤ (HTTPS) ਕਨੈਕਸ਼ਨ ਦੀ ਲੋੜ ਹੈ।',
+                translator_instruction: "ਉੱਪਰ ਮਰੀਜ਼ ਦੀ ਭਾਸ਼ਾ ਚੁਣੋ। ਭਾਸ਼ਣ ਦਾ ਅਨੁਵਾਦ ਕਰਨ ਲਈ ਰਿਕਾਰਡ ਬਟਨਾਂ ਦੀ ਵਰਤੋਂ ਕਰੋ।",
+                asha_worker_label: 'ਆਸ਼ਾ ਵਰਕਰ (ਅੰਗਰੇਜ਼ੀ)',
+                patient_label: 'ਮਰੀਜ਼',
+                record_btn: 'ਰਿਕਾਰਡ',
+                stop_btn: 'ਰੋਕੋ',
+                simulate_call_btn: 'ਕਾਲ ਦੀ ਨਕਲ ਕਰੋ',
+                simulate_sms_btn: 'SMS ਦੀ ਨਕਲ ਕਰੋ'
+            },
+            'gu-IN': {
+                dashboard_title: 'માસ ડેશબોર્ડ',
+                dashboard_subtitle: 'ગ્રામીણ ગર્ભાવસ્થાના કેસોનું પ્રાધાન્યતા નિરીક્ષણ',
+                high_risk: 'ઉચ્ચ જોખમ', medium_risk: 'મધ્યમ જોખમ', low_risk: 'ઓછું જોખમ',
+                search_placeholder: 'નામ અથવા ગામ દ્વારા શોધો...',
+                village_label: 'ગામ:', last_updated_label: 'છેલ્લું અપડેટ:',
+                add_patient_btn: 'નવો દર્દી ઉમેરો',
+                add_new_patient_title: 'નવો દર્દી ઉમેરો',
+                form_name_label: 'પૂરું નામ',
+                form_village_label: 'ગામ',
+                form_risk_label: 'જોખમ સ્તર',
+                form_details_label: 'લક્ષણો / વિગતો',
+                add_translations_label: 'અનુવાદો ઉમેરો (વૈકલ્પિક)',
+                cancel_btn: 'રદ કરો',
+                save_patient_btn: 'દર્દીને સાચવો',
+                history_title: 'સાપ્તાહિક ઇતિહાસ',
+                add_entry_btn: 'એન્ટ્રી ઉમેરો',
+                add_entry_title: 'સાપ્તાહિક એન્ટ્રી ઉમેરો',
+                week_label: 'અઠવાડિયું (1-41)',
+                bp_label: 'બ્લડ પ્રેશર (દા.ત., 120/80)',
+                weight_label: 'વજન (દા.ત., 65kg)',
+                sugar_label: 'બ્લડ સુગર (દા.ત., 90 mg/dL)',
+                notes_label: 'નોંધો',
+                save_entry_btn: 'એન્ટ્રી સાચવો',
+                no_history: 'હજુ સુધી કોઈ ઇતિહાસ એન્ટ્રીઓ નથી.',
+                week_label_short: 'અઠવાડિયું',
+                bp_label_short: 'બીપી',
+                weight_label_short: 'વજન',
+                sugar_label_short: 'સુગર',
+                read_aloud_title: 'દર્દીની વિગતો મોટેથી વાંચો',
+                play_audio_btn: 'ઑડિઓ ચલાવો',
+                translator_title: 'લાઇવ વાતચીત અનુવાદક',
+                note_title: 'ਨૉૅਧ:',
+                note_body: 'આ એક સરળ પ્રદર્શન ਹੈ। રીઅલ-ટાઇમ વાણી ઓળખ માટે સુરક્ષિત (HTTPS) કનેક્શનની જરૂર છે।',
+                translator_instruction: "ઉપર દર્દીની ભાષા પસંદ કરો। ભાષણનું ભાષાંતર કરવા માટે રેકોર્ડ બટનોનો ઉપયોગ કરો।",
+                asha_worker_label: 'આશા ਵਰકર (અંગ્રેજી)',
+                patient_label: 'દર્દી',
+                record_btn: 'રેકોર્ડ',
+                stop_btn: 'બંધ',
+                simulate_call_btn: 'કૉલનું અનુકરણ કરો',
+                simulate_sms_btn: 'SMSનું અનુકરણ કરો'
+            },
+            'ta-IN': {
+                dashboard_title: 'மாஸ் டாஷ்போர்டு',
+                dashboard_subtitle: 'கிராமப்புற கர்ப்ப வழக்குகளை முன்னுரிமை கண்காணிப்பு',
+                high_risk: 'அதிக ஆபத்து', medium_risk: 'நடுத்தர ஆபத்து', low_risk: 'குறைந்த ஆபத்து',
+                search_placeholder: 'பெயர் அல்லது கிராமத்தின் மூலம் தேடவும்...',
+                village_label: 'கிராமம்:', last_updated_label: 'கடைசியாக புதுப்பிக்கப்பட்டது:',
+                add_patient_btn: 'புதிய நோயாளியைச் சேர்',
+                add_new_patient_title: 'புதிய நோயாளியைச் சேர்',
+                form_name_label: 'முழு பெயர்',
+                form_village_label: 'கிராமம்',
+                form_risk_label: 'ஆபத்து நிலை',
+                form_details_label: 'அறிகுறிகள் / விவரங்கள்',
+                add_translations_label: 'மொழிபெயர்ப்புகளைச் சேர் (விரும்பினால்)',
+                cancel_btn: 'ரத்துசெய்',
+                save_patient_btn: 'நோயாளியைச் சேமி',
+                history_title: 'வாராந்திர வரலாறு',
+                add_entry_btn: 'உள்ளீட்டைச் சேர்',
+                add_entry_title: 'வாராந்திர உள்ளீட்டைச் சேர்',
+                week_label: 'வாரம் (1-41)',
+                bp_label: 'இரத்த அழுத்தம் (எ.கா., 120/80)',
+                weight_label: 'எடை (எ.கா., 65kg)',
+                sugar_label: 'இரத்த சர்க்கரை (எ.கா., 90 mg/dL)',
+                notes_label: 'குறிப்புகள்',
+                save_entry_btn: 'உள்ளீட்டைச் சேமி',
+                no_history: 'வரலாற்று உள்ளீடுகள் இன்னும் இல்லை.',
+                week_label_short: 'வாரம்',
+                bp_label_short: 'பிபி',
+                weight_label_short: 'எடை',
+                sugar_label_short: 'சர்க்கரை',
+                read_aloud_title: 'நோயாளியின் விவரங்களை உரக்கப் படியுங்கள்',
+                play_audio_btn: 'ஆடியோவை இயக்கு',
+                translator_title: 'நேரடி உரையாடல் மொழிபெயர்ப்பாளர்',
+                note_title: 'குறிப்பு:',
+                note_body: 'இது ஒரு எளிமைப்படுத்தப்பட்ட ஆர்ப்பாட்டம்। நிகழ்நேர பேச்சு அங்கீகாரத்திற்கு பாதுகாப்பான (HTTPS) இணைப்பு தேவை।',
+                translator_instruction: "மேலே நோயாளியின் மொழியைத் தேர்ந்தெடுக்கவும்। பேச்சை மொழிபெயர்க்க பதிவு பொத்தான்களைப் பயன்படுத்தவும்.",
+                asha_worker_label: 'ஆஷா பணியாளர் (ஆங்கிலம்)',
+                patient_label: 'நோயாளி',
+                record_btn: 'பதிவு',
+                stop_btn: 'நிறுத்து',
+                simulate_call_btn: 'அழைப்பை உருவகப்படுத்து',
+                simulate_sms_btn: 'எஸ்எம்எஸ் உருவகப்படுத்து'
+            },
+            'te-IN': {
+                dashboard_title: 'మాస్ డాష్‌బోర్డ్',
+                dashboard_subtitle: 'గ్రామీణ గర్భధారణ కేసుల ప్రాధాన్యత పర్యవేక్షణ',
+                high_risk: 'అధిక ప్రమాదం', medium_risk: 'మధ్యస్థ ప్రమాదం', low_risk: 'తక్కువ ప్రమాదం',
+                search_placeholder: 'పేరు లేదా గ్రామం ద్వారా శోధించండి...',
+                village_label: 'గ్రామం:', last_updated_label: 'చివరిగా నవీకరించబడింది:',
+                add_patient_btn: 'కొత్త రోగిని జోడించండి',
+                add_new_patient_title: 'కొత్త రోగిని జోడించండి',
+                form_name_label: 'పూర్తి పేరు',
+                form_village_label: 'గ్రామం',
+                form_risk_label: 'ప్రమాద స్థాయి',
+                form_details_label: 'లక్షణాలు / వివరాలు',
+                add_translations_label: 'అనువాదాలను జోడించండి (ఐచ్ఛికం)',
+                cancel_btn: 'రద్దు చేయండి',
+                save_patient_btn: 'రోగిని సేవ్ చేయండి',
+                history_title: 'వారపు చరిత్ర',
+                add_entry_btn: 'ఎంట్రీని జోడించండి',
+                add_entry_title: 'వారపు ఎంట్రీని జోడించండి',
+                week_label: 'వారం (1-41)',
+                bp_label: 'రక్తపోటు (ఉదా., 120/80)',
+                weight_label: 'బరువు (ఉదా., 65kg)',
+                sugar_label: 'రక్తంలో చక్కెర (ఉదా., 90 mg/dL)',
+                notes_label: 'గమనికలు',
+                save_entry_btn: 'ఎంట్రీని సేవ్ చేయండి',
+                no_history: 'ఇంకా చరిత్ర ఎంట్రీలు లేవు.',
+                week_label_short: 'వారం',
+                bp_label_short: 'బిపి',
+                weight_label_short: 'బరువు',
+                sugar_label_short: 'చక్కెర',
+                read_aloud_title: 'రోగి వివరాలను బిగ్గరగా చదవండి',
+                play_audio_btn: 'ఆడియోను ప్లే చేయండి',
+                translator_title: 'లైవ్ సంభాషణ అనువాదకుడు',
+                note_title: 'గమనిక:',
+                note_body: 'ఇది సరళీకృత ప్రదర్శన. నిజ-సమయ ప్రసంగ గుర్తింపుకు సురక్షిత (HTTPS) కనెక్షన్ అవసరం.',
+                translator_instruction: "పైన రోగి భాషను ఎంచుకోండి. ప్రసంగాన్ని అనువదించడానికి రికార్డ్ బటన్‌లను ఉపయోగించండి.",
+                asha_worker_label: 'ఆశా కార్యకర్త (ఇంగ్లీష్)',
+                patient_label: 'రోగి',
+                record_btn: 'రికార్డ్',
+                stop_btn: 'ఆపు',
+                simulate_call_btn: 'కాల్‌ను అనుకరించండి',
+                simulate_sms_btn: 'SMSను అనుకరించండి'
+            },
+            'mr-IN': {
+                dashboard_title: 'मास डॅशबोर्ड',
+                dashboard_subtitle: 'ग्रामीण गर्भधारणा प्रकरणांचे प्राधान्यक्रमित निरीक्षण',
+                high_risk: 'उच्च धोका', medium_risk: 'मध्यम धोका', low_risk: 'कमी धोका',
+                search_placeholder: 'नाव किंवा गावाप्रमाणे शोधा...',
+                village_label: 'गाव:', last_updated_label: 'शेवटचे अपडेट:',
+                add_patient_btn: 'नवीन रुग्ण जोडा',
+                add_new_patient_title: 'नवीन रुग्ण जोडा',
+                form_name_label: 'पूर्ण नाव',
+                form_village_label: 'गाव',
+                form_risk_label: 'धोका पातळी',
+                form_details_label: 'लक्षणे / तपशील',
+                add_translations_label: 'भाषांतर जोडा (ऐच्छिक)',
+                cancel_btn: 'रद्द करा',
+                save_patient_btn: 'रुग्ण जतन करा',
+                history_title: 'साप्ताहिक इतिहास',
+                add_entry_btn: 'नोंद जोडा',
+                add_entry_title: 'साप्ताहिक नोंद जोडा',
+                week_label: 'आठवडा (१-४१)',
+                bp_label: 'रक्तदाब (उदा. १२०/८०)',
+                weight_label: 'वजन (उदा. ६५ किलो)',
+                sugar_label: 'रक्तातील साखर (उदा. ९० मिग्रॅ/डीएल)',
+                notes_label: 'टीप',
+                save_entry_btn: 'नोंद जतन करा',
+                no_history: 'अद्याप इतिहासाच्या नोंदी नाहीत.',
+                week_label_short: 'आठवडा',
+                bp_label_short: 'रक्तदाब',
+                weight_label_short: 'वजन',
+                sugar_label_short: 'साखर',
+                read_aloud_title: 'रुग्णाची माहिती मोठ्याने वाचा',
+                play_audio_btn: 'ऑडिओ प्ले करा',
+                translator_title: 'थेट संभाषण अनुवादक',
+                note_title: 'टीप:',
+                note_body: 'हे एक सोपे प्रात्यक्षिक आहे. रिअल-टाइम स्पीच रेकग्निशनसाठी सुरक्षित (HTTPS) कनेक्शन आवश्यक आहे.',
+                translator_instruction: "वर रुग्णाची भाषा निवडा. भाषण अनुवादित करण्यासाठी रेकॉर्ड बटणे वापरा.",
+                asha_worker_label: 'आशा कार्यकर्ता (इंग्रजी)',
+                patient_label: 'रुग्ण',
+                record_btn: 'रेकॉर्ड',
+                stop_btn: 'थांबा',
+                simulate_call_btn: 'कॉलचे अनुकरण करा',
+                simulate_sms_btn: 'एसएमएसचे अनुकरण करा'
+            },
+            'ur-IN': {
+                dashboard_title: 'ماس ڈیش بورڈ',
+                dashboard_subtitle: 'دیہی حمل کے معاملات کی ترجیحی نگرانی',
+                high_risk: 'زیادہ خطرہ', medium_risk: 'درمیانی خطرہ', low_risk: 'کم خطرہ',
+                search_placeholder: 'نام یا گاؤں کے لحاظ سے تلاش کریں...',
+                village_label: 'گاؤں:', last_updated_label: 'آخری اپ ڈیٹ:',
+                add_patient_btn: 'نیا مریض شامل کریں',
+                add_new_patient_title: 'نیا مریض شامل کریں',
+                form_name_label: 'پورا نام',
+                form_village_label: 'گاؤں',
+                form_risk_label: 'خطرے کی سطح',
+                form_details_label: 'علامات / تفصیلات',
+                add_translations_label: 'ترجمے شامل کریں (اختیاری)',
+                cancel_btn: 'منسوخ کریں',
+                save_patient_btn: 'مریض کو محفوظ کریں',
+                history_title: 'ہفتہ وار تاریخ',
+                add_entry_btn: 'اندراج شامل کریں',
+                add_entry_title: 'ہفتہ وار اندراج شامل کریں',
+                week_label: 'ہفتہ (1-41)',
+                bp_label: 'بلڈ پریشر (مثال کے طور پر، 120/80)',
+                weight_label: 'وزن (مثال کے طور پر، 65 کلوگرام)',
+                sugar_label: 'بلڈ شوگر (مثال کے طور پر، 90 ملی گرام/ڈی ایل)',
+                notes_label: 'نوٹس',
+                save_entry_btn: 'اندراج محفوظ کریں',
+                no_history: 'ابھی تک کوئی تاریخی اندراجات نہیں ہیں۔',
+                week_label_short: 'ہفتہ',
+                bp_label_short: 'بی پی',
+                weight_label_short: 'وزن',
+                sugar_label_short: 'شوگر',
+                read_aloud_title: 'مریض کی تفصیلات بلند آواز میں پڑھیں',
+                play_audio_btn: 'آڈیو چلائیں',
+                translator_title: 'لائیو گفتگو کا مترجم',
+                note_title: 'نوٹ:',
+                note_body: 'یہ ایک آسان مظاہرہ ہے۔ ریئل ٹائم اسپیچ ریکگنیشن کے لیے ایک محفوظ (HTTPS) کنکشن درکار ہے۔',
+                translator_instruction: "اوپر مریض کی زبان منتخب کریں۔ تقریر کا ترجمہ کرنے کے لیے ریکارڈ بٹن استعمال کریں۔",
+                asha_worker_label: 'آشا ورکر (انگریزی)',
+                patient_label: 'مریض',
+                record_btn: 'ریکارڈ',
+                stop_btn: 'روکیں',
+                simulate_call_btn: 'کال کی تقلید کریں',
+                simulate_sms_btn: 'ایس ایم ایس کی تقلید کریں'
+            },
+            'kn-IN': {
+                dashboard_title: 'ಮಾಸ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',
+                dashboard_subtitle: 'ಗ್ರಾಮೀಣ ಗರ್ಭಧಾರಣೆಯ ಪ್ರಕರಣಗಳ ಆದ್ಯತೆಯ ಮೇಲ್ವಿಚಾರಣೆ',
+                high_risk: 'ಹೆಚ್ಚಿನ ಅಪಾಯ', medium_risk: 'ಮಧ್ಯಮ ಅಪಾಯ', low_risk: 'ಕಡಿಮೆ ಅಪಾಯ',
+                search_placeholder: 'ಹೆಸರು ಅಥವಾ ಹಳ್ಳಿಯ ಮೂಲಕ ಹುಡುಕಿ...',
+                village_label: 'ಗ್ರಾಮ:', last_updated_label: 'ಕೊನೆಯದಾಗಿ ನವೀಕರಿಸಲಾಗಿದೆ:',
+                add_patient_btn: 'ಹೊಸ ರೋಗಿಯನ್ನು ಸೇರಿಸಿ',
+                add_new_patient_title: 'ಹೊಸ ರೋಗಿಯನ್ನು ಸೇರಿಸಿ',
+                form_name_label: 'ಪೂರ್ಣ ಹೆಸರು',
+                form_village_label: 'ಗ್ರಾಮ',
+                form_risk_label: 'ಅಪಾಯದ ಮಟ್ಟ',
+                form_details_label: 'ಲಕ್ಷಣಗಳು / ವಿವರಗಳು',
+                add_translations_label: 'ಅನುವಾದಗಳನ್ನು ಸೇರಿಸಿ (ಐಚ್ಛಿಕ)',
+                cancel_btn: 'ರದ್ದುಮಾಡಿ',
+                save_patient_btn: 'ರೋಗಿಯನ್ನು ಉಳಿಸಿ',
+                history_title: 'ವಾರದ ಇತಿಹಾಸ',
+                add_entry_btn: 'ನಮೂದನ್ನು ಸೇರಿಸಿ',
+                add_entry_title: 'ವಾರದ ನಮೂದನ್ನು ಸೇರಿಸಿ',
+                week_label: 'ವಾರ (1-41)',
+                bp_label: 'ರಕ್ತದೊತ್ತಡ (ಉದಾ., 120/80)',
+                weight_label: 'ತೂಕ (ಉದಾ., 65kg)',
+                sugar_label: 'ರಕ್ತದಲ್ಲಿನ ಸಕ್ಕರೆ (ಉದಾ., 90 mg/dL)',
+                notes_label: 'ಟಿಪ್ಪಣಿಗಳು',
+                save_entry_btn: 'ನಮೂದನ್ನು ಉಳಿಸಿ',
+                no_history: 'ಇನ್ನೂ ಯಾವುದೇ ಇತಿಹಾಸ ನಮೂದುಗಳಿಲ್ಲ.',
+                week_label_short: 'ವಾರ',
+                bp_label_short: 'ಬಿಪಿ',
+                weight_label_short: 'ತೂಕ',
+                sugar_label_short: 'ಸಕ್ಕರೆ',
+                read_aloud_title: 'ರೋಗಿಯ ವಿವರಗಳನ್ನು ಗಟ್ಟಿಯಾಗಿ ಓದಿ',
+                play_audio_btn: 'ಆಡಿಯೋ ಪ್ಲೇ ಮಾಡಿ',
+                translator_title: 'ಲೈವ್ ಸಂಭಾಷಣೆ ಅನುವಾದಕ',
+                note_title: 'ಗಮನಿಸಿ:',
+                note_body: 'ಇದು ಒಂದು ಸರಳೀಕೃತ ಪ್ರದರ್ಶನ. ನೈಜ-ಸಮಯದ ಮಾತಿನ ಗುರುತಿಸುವಿಕೆಗೆ ಸುರಕ್ಷಿತ (HTTPS) ಸಂಪರ್ಕದ ಅಗತ್ಯವಿದೆ.',
+                translator_instruction: "ಮೇಲೆ ರೋಗಿಯ ಭਾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ. ಮಾತನ್ನು ಭಾಷಾಂತರಿಸಲು ರೆಕಾರ್డ్ ಬಟನ್‌ಗಳನ್ನು ಬಳಸಿ.",
+                asha_worker_label: 'ಆಶಾ ಕಾರ್ಯಕರ್ತೆ (ಇಂಗ್ಲಿಷ್)',
+                patient_label: 'ರೋಗಿ',
+                record_btn: 'ರೆಕಾರ್ಡ್',
+                stop_btn: 'ನಿಲ್ಲಿಸಿ',
+                simulate_call_btn: 'ಕರೆಯನ್ನು ಅನುಕರಿಸಿ',
+                simulate_sms_btn: 'SMS ಅನುಕರಿಸಿ'
+            },
+            'ml-IN': {
+                dashboard_title: 'മാസ് ഡാഷ്ബോർഡ്',
+                dashboard_subtitle: 'ഗ്രാമീണ ഗർഭാവസ്ഥ കേസുകളുടെ മുൻഗണനാ നിരീക്ഷണം',
+                high_risk: 'ഉയർന്ന അപകടസാധ്യത', medium_risk: 'ഇടത്തരം അപകടസാധ്യത', low_risk: 'കുറഞ്ഞ അപകടസാധ്യത',
+                search_placeholder: 'പേര് അല്ലെങ്കിൽ ഗ്രാമം ഉപയോഗിച്ച് തിരയുക...',
+                village_label: 'ഗ്രാമം:', last_updated_label: 'അവസാനം അപ്ഡേറ്റ് ചെയ്തത്:',
+                add_patient_btn: 'പുതിയ രോഗിയെ ചേർക്കുക',
+                add_new_patient_title: 'പുതിയ രോഗിയെ ചേർക്കുക',
+                form_name_label: 'പൂർണ്ണമായ പേര്',
+                form_village_label: 'ഗ്രാമം',
+                form_risk_label: 'അപകടസാധ്യത നില',
+                form_details_label: 'ലക്ഷണങ്ങൾ / വിശദാംശങ്ങൾ',
+                add_translations_label: 'വിവർത്തനങ്ങൾ ചേർക്കുക (ഓപ്ഷണൽ)',
+                cancel_btn: 'റദ്ദാക്കുക',
+                save_patient_btn: 'രോഗിയെ സംരക്ഷിക്കുക',
+                history_title: 'പ്രതിവാര ചരിത്രം',
+                add_entry_btn: 'എൻട്രി ചേർക്കുക',
+                add_entry_title: 'പ്രതിവാര എൻട്രി ചേർക്കുക',
+                week_label: 'ആഴ്ച (1-41)',
+                bp_label: 'രക്തസമ്മർദ്ദം (ഉദാ., 120/80)',
+                weight_label: 'ഭാരം (ഉദാ., 65kg)',
+                sugar_label: 'രക്തത്തിലെ പഞ്ചസാര (ഉദാ., 90 mg/dL)',
+                notes_label: 'കുറിപ്പുകൾ',
+                save_entry_btn: 'എൻട്രി സംരക്ഷിക്കുക',
+                no_history: 'ചരിത്രപരമായ എൻട്രികളൊന്നുമില്ല.',
+                week_label_short: 'ആഴ്ച',
+                bp_label_short: 'ബിപി',
+                weight_label_short: 'ഭാരം',
+                sugar_label_short: 'പഞ്ചസാര',
+                read_aloud_title: 'രോഗിയുടെ വിശദാംശങ്ങൾ ഉറക്കെ വായിക്കുക',
+                play_audio_btn: 'ഓഡിയോ പ്ലേ ചെയ്യുക',
+                translator_title: 'തത്സമയ സംഭാഷണ വിവർത്തകൻ',
+                note_title: 'കുറിപ്പ്:',
+                note_body: 'ഇതൊരു ലളിതമായ പ്രദർശനമാണ്. തത്സമയ സംഭാഷണം തിരിച്ചറിയുന്നതിന് ഒരു സുരക്ഷിത (HTTPS) കണക്ഷൻ ആവശ്യമാണ്.',
+                translator_instruction: "മുകളിൽ രോഗിയുടെ ഭാഷ തിരഞ്ഞെടുക്കുക. സംഭാഷണം വിവർത്തനം ചെയ്യാൻ റെക്കോർഡ് ബട്ടണുകൾ ഉപയോഗിക്കുക.",
+                asha_worker_label: 'ആശാ വർക്കർ (ഇംഗ്ലീഷ്)',
+                patient_label: 'രോഗി',
+                record_btn: 'റെക്കോർഡ്',
+                stop_btn: 'നിർത്തുക',
+                simulate_call_btn: 'കോൾ അനുകരിക്കുക',
+                simulate_sms_btn: 'എസ്എംഎസ് അനുകരിക്കുക'
+            },
+            'or': {
+                dashboard_title: 'ମାସ୍ ଡ୍ୟାସବୋର୍ଡ',
+                dashboard_subtitle: 'ଗ୍ରାମୀଣ ଗର୍ଭାବସ୍ଥା ମାମଲାର ପ୍ରାଥମିକତା ଭିତ୍ତିକ ନିରୀକ୍ଷଣ',
+                high_risk: 'ଅଧିକ ବିପଦ', medium_risk: 'ମଧ୍ୟମ ବିପଦ', low_risk: 'କମ୍ ବିପଦ',
+                search_placeholder: 'ନାମ କିମ୍ବା ଗାଁ ଅନୁଯାୟୀ ଖୋଜନ୍ତୁ...',
+                village_label: 'ଗ୍ରାମ:', last_updated_label: 'ଶେଷ ଅଦ୍ୟତନ:',
+                add_patient_btn: 'ନୂଆ ରୋଗୀ ଯୋଗ କରନ୍ତୁ',
+                add_new_patient_title: 'ନୂଆ ରୋଗୀ ଯୋଗ କରନ୍ତୁ',
+                form_name_label: 'ପୂରା ନାମ',
+                form_village_label: 'ଗ୍ରାମ',
+                form_risk_label: 'ବିପଦ ସ୍ତର',
+                form_details_label: 'ଲକ୍ଷଣ / ବିବରଣୀ',
+                add_translations_label: 'ଅନୁବାଦ ଯୋଗ କରନ୍ତୁ (ବୈକଳ୍ਪିକ)',
+                cancel_btn: 'ବାତିଲ କରନ୍ତୁ',
+                save_patient_btn: 'ରୋଗୀ ସଂରକ୍ଷଣ କରନ୍ତୁ',
+                history_title: 'ସାପ୍ତାହିକ ଇତିହାସ',
+                add_entry_btn: 'ପ୍ରବିଷ୍ଟି ଯୋଗ କରନ୍ତୁ',
+                add_entry_title: 'ସାପ୍ତାହିକ ପ୍ରବିଷ୍ଟି ଯୋଗ କରନ୍ତୁ',
+                week_label: 'ସପ୍ତାହ (୧-୪૧)',
+                bp_label: 'ରକ୍ତଚାପ (ଉଦାହରଣ, ୧୨୦/୮୦)',
+                weight_label: 'ଓଜନ (ଉଦାହରଣ, ୬୫ କିଗ୍ରା)',
+                sugar_label: 'ରକ୍ତ ଶର୍କରା (ଉଦାହରଣ, ୯୦ ମିଗ୍ରା/ଡିଏଲ)',
+                notes_label: 'ଟିପ୍ପଣୀ',
+                save_entry_btn: 'ପ୍ରବିଷ୍ଟି ସଂରକ୍ଷଣ କରନ୍ତୁ',
+                no_history: 'କୌଣସି ଇତିହାସ ପ୍ରବିଷ୍ଟି ନାହିଁ।',
+                week_label_short: 'ସପ୍ତାହ',
+                bp_label_short: 'ରକ୍ତଚାପ',
+                weight_label_short: 'ଓଜନ',
+                sugar_label_short: 'ଶର୍କରା',
+                read_aloud_title: 'ରୋଗୀଙ୍କ ବିବରଣୀକୁ ଜୋରରେ ପଢ଼ନ୍ତୁ',
+                play_audio_btn: 'ଅଡିଓ ଚଲାନ୍ତୁ',
+                translator_title: 'ଲାଇଭ୍ ବାର୍ତ୍ତାଳାପ ଅନੁବାଦକ',
+                note_title: 'ଧ୍ୟାନ ଦିଅନ୍ତୁ:',
+                note_body: 'ଏହା ଏକ ସରଳୀକୃତ ପ୍ରଦର୍ଶନ। ରିଅਲ୍-ଟାଇମ୍ ବକ୍ତବ୍ୟ ଚିହ୍ନଟ ପାଇଁ ଏକ ସୁରକ୍ଷିତ (HTTPS) ସଂଯୋଗ ଆବଶ୍ୟକ।',
+                translator_instruction: "ଉପରେ ରୋଗୀଙ୍କ ଭାଷା ଚୟନ କରନ୍ତୁ। ବକ୍ତବ୍ୟ ଅନୁବାଦ କରିବାକୁ ରେକର୍ଡ ବଟନ୍ ବ୍ୟବହାର କରନ୍ତୁ।",
+                asha_worker_label: 'ଆଶା କର୍ମୀ (ଇଂରାଜୀ)',
+                patient_label: 'ରୋଗୀ',
+                record_btn: 'ରେକର୍ଡ',
+                stop_btn: 'ବନ୍ଦ କରନ୍ତୁ',
+                simulate_call_btn: 'କଲ୍ ଅନୁକରଣ କରନ୍ତୁ',
+                simulate_sms_btn: 'SMS ଅନੁକରଣ କରନ୍ତୁ'
+            },
+            'ne-NP': {
+                dashboard_title: 'मास ड्यासबोर्ड',
+                dashboard_subtitle: 'ग्रामीण गर्भावस्थाका केसहरूको प्राथमिकतामा आधारित अनुगमन',
+                high_risk: 'उच्च जोखिम', medium_risk: 'मध्यम जोखिम', low_risk: 'कम जोखिम',
+                search_placeholder: 'नाम वा गाउँद्वारा खोज्नुहोस्...',
+                village_label: 'गाउँ:', last_updated_label: 'पछिल्लो अपडेट:',
+                add_patient_btn: 'नयाँ बिरामी थप्नुहोस्',
+                add_new_patient_title: 'नयाँ बिरामी थप्नुहोस्',
+                form_name_label: 'पूरा नाम',
+                form_village_label: 'गाउँ',
+                form_risk_label: 'जोखिम स्तर',
+                form_details_label: 'लक्षण / विवरण',
+                add_translations_label: 'अनुवाद थप्नुहोस् (ऐच्छिक)',
+                cancel_btn: 'रद्द गर्नुहोस्',
+                save_patient_btn: 'बिरामी बचत गर्नुहोस्',
+                history_title: 'साप्ताहिक इतिहास',
+                add_entry_btn: 'प्रविष्टि थप्नुहोस्',
+                add_entry_title: 'साप्ताहिक प्रविष्टि थप्नुहोस्',
+                week_label: 'हप्ता (१-४१)',
+                bp_label: 'रक्तचाप (उदाहरण, १२०/८०)',
+                weight_label: 'तौल (उदाहरण, ६५ केजी)',
+                sugar_label: 'रगतमा चिनी (उदाहरण, ९० एमजी/डीएल)',
+                notes_label: 'टिप्पणीहरू',
+                save_entry_btn: 'प्रविष्टि बचत गर्नुहोस्',
+                no_history: 'अहिलेसम्म कुनै इतिहास प्रविष्टिहरू छैनन्।',
+                week_label_short: 'हप्ता',
+                bp_label_short: 'रक्तचाप',
+                weight_label_short: 'तौल',
+                sugar_label_short: 'चिनी',
+                read_aloud_title: 'बिरामीको विवरण ठूलो स्वरमा पढ्नुहोस्',
+                play_audio_btn: 'अडियो प्ले गर्नुहोस्',
+                translator_title: 'प्रत्यक्ष कुराकानी अनुवादक',
+                note_title: 'नोट:',
+                note_body: 'यो एक सरलीकृत प्रदर्शन हो। वास्तविक-समय वाक् पहिचानका लागि सुरक्षित (HTTPS) जडान चाहिन्छ।',
+                translator_instruction: "माथि बिरामीको भाषा चयन गर्नुहोस्। भाषण अनुवाद गर्न रेकर्ड बटनहरू प्रयोग गर्नुहोस्।",
+                asha_worker_label: 'आशा कार्यकर्ता (अंग्रेजी)',
+                patient_label: 'बिरामी',
+                record_btn: 'रेकर्ड',
+                stop_btn: 'रोक्नुहोस्',
+                simulate_call_btn: 'कलको नक्कल गर्नुहोस्',
+                simulate_sms_btn: 'एसएमएसको नक्कल गर्नुहोस्'
+            },
+             'ks': {
+                dashboard_title: 'ماس ڈیش بورڈ',
+                dashboard_subtitle: 'دیہی حمل چہِ کیسن ہنز ترجیحی نگرانی',
+                high_risk: 'زیٛادٕ خطرٕ', medium_risk: 'درمیانہ خطرٕ', low_risk: 'کم خطرٕ',
+                search_placeholder: 'ناو یا گامٕ سیتھ ژھانڈิว...',
+                village_label: 'गام:', last_updated_label: 'ؤنیُک اپڈیٹ:',
+                add_patient_btn: 'نٔو مریض رلاوِو',
+                add_new_patient_title: 'نٔو مریض رلاوِو',
+                form_name_label: 'پورٕ ناو',
+                form_village_label: 'گام',
+                form_risk_label: 'خطرٕک سطح',
+                form_details_label: 'علامت / تفصیل',
+                add_translations_label: 'ترجمہٕ رلاوِو (اختیاری)',
+                cancel_btn: 'منسوخ کٔرِو',
+                save_patient_btn: 'مریض بچاوِو',
+                history_title: 'ہفتہٕ وار تاریخ',
+                add_entry_btn: 'اندراج کٔرِو',
+                add_entry_title: 'ہفتہٕ وار اندراج کٔرِو',
+                week_label: 'ہفتہٕ (1-41)',
+                bp_label: 'بلڈ پریشر (مثلاً 120/80)',
+                weight_label: 'وزن (مثلاً 65kg)',
+                sugar_label: 'بلڈ شوگر (مثلاً 90 mg/dL)',
+                notes_label: 'نوٹ',
+                save_entry_btn: 'اندراج بچاوِو',
+                no_history: 'کانہہ تہِ تاریخی اندراج چھُ نٕہ۔',
+                week_label_short: 'ہفتہٕ',
+                bp_label_short: 'بی پی',
+                weight_label_short: 'وزن',
+                sugar_label_short: 'شوگر',
+                read_aloud_title: 'مریض سُنٛد تفصیل زورٕ سان پٔرِو',
+                play_audio_btn: 'آڈیو چلاوِو',
+                translator_title: 'براہ راست کتھ باتھ ترجمان',
+                note_title: 'نوٹ:',
+                note_body: 'یہِ چھُ اَکھ آسان प्रदर्शन۔ اصلی وقتچ تقریر شناخت خٲطرٕ چھُ اَکھ محفوظ (HTTPS) کنکشن ضروٗری۔',
+                translator_instruction: "بیمار سٕنٛز زبان ہیور ژھارِو۔ تقریر ترجمہ کرنہٕ خٲطرٕ ریکارڈ بٹن استعمال کٔرِو۔",
+                asha_worker_label: 'آشا ورکر (انگریزی)',
+                patient_label: 'بیمار',
+                record_btn: 'ریکارڈ',
+                stop_btn: 'رُکاوِو',
+                simulate_call_btn: 'کال نقل کٔرِو',
+                simulate_sms_btn: 'ایس ایم ایس نقل کٔرِو'
+            },
+            'kok': {
+                dashboard_title: 'मास डॅशबोर्ड',
+                dashboard_subtitle: 'ग्रामीण गर्भधारणेच्या प्रकरणांचे प्राधान्य निरीक्षण',
+                high_risk: 'उच्च धोका', medium_risk: 'मध्यम धोका', low_risk: 'कमी धोका',
+                search_placeholder: 'नाव किंवा गावानुसार शोधा...',
+                village_label: 'गांव:', last_updated_label: 'शेवटचे अपडेट:',
+                add_patient_btn: 'नवीन रुग्ण जोडा',
+                add_new_patient_title: 'नवीन रुग्ण जोडा',
+                form_name_label: 'पूर्ण नाव',
+                form_village_label: 'गांव',
+                form_risk_label: 'धोका पातळी',
+                form_details_label: 'लक्षणे / तपशील',
+                add_translations_label: 'भाषांतर जोडा (ऐच्छिक)',
+                cancel_btn: 'रद्द करा',
+                save_patient_btn: 'रुग्ण जतन करा',
+                history_title: 'साप्ताहिक इतिहास',
+                add_entry_btn: 'नोंदणी करा',
+                add_entry_title: 'साप्ताहिक नोंदणी करा',
+                week_label: 'आठवडा (1-41)',
+                bp_label: 'रक्तदाब (उदा. 120/80)',
+                weight_label: 'वजन (उदा. 65kg)',
+                sugar_label: 'रक्तातील साखर (उदा. 90 mg/dL)',
+                notes_label: 'टीप',
+                save_entry_btn: 'नोंदणी जतन करा',
+                no_history: 'अद्याप इतिहासाची नोंद नाही.',
+                week_label_short: 'आठवडा',
+                bp_label_short: 'रक्तदाब',
+                weight_label_short: 'वजन',
+                sugar_label_short: 'साखर',
+                read_aloud_title: 'रुग्णाची माहिती मोठ्याने वाचा',
+                play_audio_btn: 'ऑडिओ प्ले करा',
+                translator_title: 'थेट संभाषण अनुवादक',
+                note_title: 'टीप:',
+                note_body: 'हे एक सोपे प्रात्यक्षिक आहे. रिअल-टाइम स्पीच रेकग्निशनसाठी सुरक्षित (HTTPS) कनेक्शन आवश्यक आहे.',
+                translator_instruction: "वर रुग्णाची भाषा निवडा. भाषण अनुवादित करण्यासाठी रेकॉर्ड बटणे वापरा.",
+                asha_worker_label: 'आशा कार्यकर्ता (इंग्रजी)',
+                patient_label: 'रुग्ण',
+                record_btn: 'रेकॉर्ड',
+                stop_btn: 'थांबा',
+                simulate_call_btn: 'कॉलचे अनुकरण करा',
+                simulate_sms_btn: 'एसएमएसचे अनुकरण करा'
+            },
+            'mai': {
+                dashboard_title: 'मास डैशबोर्ड',
+                dashboard_subtitle: 'ग्रामीण गर्भावस्था मामलाक प्राथमिकता पर निगरानी',
+                high_risk: 'उच्च जोखिम', medium_risk: 'मध्यम जोखिम', low_risk: 'कम जोखिम',
+                search_placeholder: 'नाम वा गाम सँ खोजू...',
+                village_label: 'गाम:', last_updated_label: 'अंतिम अपडेट:',
+                add_patient_btn: 'नया रोगी जोडू',
+                add_new_patient_title: 'नया रोगी जोडू',
+                form_name_label: 'पूरा नाम',
+                form_village_label: 'गाम',
+                form_risk_label: 'जोखिम स्तर',
+                form_details_label: 'लक्षण / विवरण',
+                add_translations_label: 'अनुवाद जोडू (वैकल्पिक)',
+                cancel_btn: 'रद्द करू',
+                save_patient_btn: 'रोगी सहेजू',
+                history_title: 'साप्ताहिक इतिहास',
+                add_entry_btn: 'प्रविष्टि जोडू',
+                add_entry_title: 'साप्ताहिक प्रविष्टि जोडू',
+                week_label: 'सप्ताह (1-41)',
+                bp_label: 'रक्तचाप (उदा. 120/80)',
+                weight_label: 'वजन (उदा. 65kg)',
+                sugar_label: 'रक्त शर्करा (उदा. 90 mg/dL)',
+                notes_label: 'नोट्स',
+                save_entry_btn: 'प्रविष्टि सहेजू',
+                no_history: 'कोनो इतिहास प्रविष्टि नहि अछि।',
+                week_label_short: 'सप्ताह',
+                bp_label_short: 'बीपी',
+                weight_label_short: 'वजन',
+                sugar_label_short: 'शर्करा',
+                read_aloud_title: 'रोगीक विवरण जोर सँ पढू',
+                play_audio_btn: 'ऑडियो चलाउ',
+                translator_title: 'लाइव वार्तालाप अनुवादक',
+                note_title: 'नोट:',
+                note_body: 'ई एक सरलीकृत प्रदर्शन अछि। रियल-टाइम भाषण पहचान लेल एकटा सुरक्षित (HTTPS) कनेक्शन आवश्यक अछि।',
+                translator_instruction: "ऊपर रोगीक भाषा चुनू। भाषणक अनुवाद करबाक लेल रिकॉर्ड बटनक उपयोग करू।",
+                asha_worker_label: 'आशा कार्यकर्ता (अंग्रेजी)',
+                patient_label: 'रोगी',
+                record_btn: 'रिकॉर्ड',
+                stop_btn: 'रोकय',
+                simulate_call_btn: 'कॉलक अनुकरण करू',
+                simulate_sms_btn: 'एसएमएसक अनुकरण करू'
+            },
+            'mni': {
+                dashboard_title: 'মাস ডেশবোর্ড',
+                dashboard_subtitle: 'खुंगংগী মীনা ওইবা কেসশিংগী प्रायोरिटाइज्ड মোনিটরিং',
+                high_risk: 'অহানবা রিস্ক', medium_risk: 'মরক্তা রিস্ক', low_risk: 'নেমবা রিস্ক',
+                search_placeholder: 'মিং নত্রগা খুঙ্গংগী মতাংদা থি...',
+                village_label: 'खुঙ্গং:', last_updated_label: 'অরোইবা અપডেট:',
+                add_patient_btn: 'অনাবা অপুনবা হাপচিনু',
+                add_new_patient_title: 'অনাবা অপুনবা হাপচিনু',
+                form_name_label: 'মিং পুম্নমক',
+                form_village_label: 'खुঙ্গং',
+                form_risk_label: 'রিস্কগী থাক',
+                form_details_label: 'মহিং / ময়েক',
+                add_translations_label: 'ৱাহন্থোক হাপচিনু (অপশনাল)',
+                cancel_btn: 'কেনসেল তৌ',
+                save_patient_btn: 'অনাবা সেভ তৌ',
+                history_title: 'চয়োলগী পুৱারী',
+                add_entry_btn: 'এন্ট্রি হাপচিনু',
+                add_entry_title: 'চয়োলগী এন্ট্রি হাপচিনু',
+                week_label: 'চয়োল (۱-۴۱)',
+                bp_label: 'ঈগী প্রেসর (খুদম, ১২০/৮০)',
+                weight_label: 'অরুবা (খুদম, ৬৫kg)',
+                sugar_label: 'ঈগী চিনি (খুদম, ৯০ mg/dL)',
+                notes_label: 'নোট',
+                save_entry_btn: 'এন্ট্রি সেভ তৌ',
+                no_history: 'পুৱারীগী এন্ট্রি অমত্তা লৈতে।',
+                week_label_short: 'চয়োল',
+                bp_label_short: 'বিপি',
+                weight_label_short: 'অরুবা',
+                sugar_label_short: 'চিনি',
+                read_aloud_title: 'অনাবাগী ময়েক অদু চাওনা পাউ',
+                play_audio_btn: 'অডিও প্লে তৌ',
+                translator_title: 'লাইভ ৱারী শান্নবা হন্থোকপী',
+                note_title: 'নোট:',
+                note_body: 'মসি অমত্তা সরলীকৃত উৎলিবনি। रियल-टाइम স্পীচ রেকগনিশনগীদমক অমাংবা (HTTPS) কনেকশন অমা মথৌ তাই।',
+                translator_instruction: "মথক্তা অনাবাগী লোল অদু খল্লু। ৱা ঙাংবা হন্থোক্নবগীদমক রেকর্ড বটনশিং শীজিন্নবীয়ু।",
+                asha_worker_label: 'আশা কর্মী (ইংলিশ)',
+                patient_label: 'অনাবা',
+                record_btn: 'রেকর্ড',
+                stop_btn: 'লেপ্পু',
+                simulate_call_btn: 'কলগী নকল তৌ',
+                simulate_sms_btn: 'এসএমএসগী নকল তৌ'
+            },
+            'sa': {
+                dashboard_title: 'मास-सुधापत्रम्',
+                dashboard_subtitle: 'ग्रामीणगर्भावस्थाप्रकरणानाम् प्राथमिकतायुक्तनिरीक्षणम्',
+                high_risk: 'उच्चापायः', medium_risk: 'मध्यमापायः', low_risk: 'अल्पापायः',
+                search_placeholder: 'नाम्ना ग्रामेण वा अन्विष्यताम्...',
+                village_label: 'ग्रामः:', last_updated_label: 'अन्तिम-अद्यतनम्:',
+                add_patient_btn: 'नूतनं रुग्णं योजयतु',
+                add_new_patient_title: 'नूतनं रुग्णं योजयतु',
+                form_name_label: 'पूर्णं नाम',
+                form_village_label: 'ग्रामः',
+                form_risk_label: 'आपायस्तरः',
+                form_details_label: 'लक्षणानि / विवरणम्',
+                add_translations_label: 'अनुवादान् योजयतु (वैकल्पिकम्)',
+                cancel_btn: 'रद्दं करोतु',
+                save_patient_btn: 'रुग्णं रक्षतु',
+                history_title: 'साप्ताहिकः इतिहासः',
+                add_entry_btn: 'प्रविष्टिं योजयतु',
+                add_entry_title: 'साप्ताहिकप्रविष्टिं योजयतु',
+                week_label: 'सप्ताहः (१-४१)',
+                bp_label: 'रक्तचापः (उदा., १२०/८०)',
+                weight_label: 'भारः (उदा., ६५kg)',
+                sugar_label: 'रक्तशर्करा (उदा., ९० mg/dL)',
+                notes_label: 'टिप्पण्यः',
+                save_entry_btn: 'प्रविष्टिं रक्षतु',
+                no_history: 'अद्यापि इतिहासे प्रविष्टयः न सन्ति।',
+                week_label_short: 'सप्ताहः',
+                bp_label_short: 'रक्तचापः',
+                weight_label_short: 'भारः',
+                sugar_label_short: 'शर्करा',
+                read_aloud_title: 'रुग्णस्य विवरणानि उच्चैः पठतु',
+                play_audio_btn: 'श्रव्यं चालयतु',
+                translator_title: 'साक्षात्-सम्भाषणानुवादकः',
+                note_title: 'टिप्पणी:',
+                note_body: 'इदं सरलीकृतं प्रदर्शनम् अस्ति। वास्तविकसमयवाक्परिज्ञानाय सुरक्षितं (HTTPS) सञ्ज्ञा आवश्यकम्।',
+                translator_instruction: "उपरि रुग्णस्य भाषां चिनोतु। वाचं अनुवदितुं रेकॉर्ड-बटन् उपयुज्यताम्।",
+                asha_worker_label: 'आशा कार्यकर्ता (आङ्ग्लभाषा)',
+                patient_label: 'रुग्णः',
+                record_btn: 'अभिलेखयतु',
+                stop_btn: 'स्थगयतु',
+                simulate_call_btn: 'आह्वानं अनुकरोतु',
+                simulate_sms_btn: 'लघुसंदेशं अनुकरोतु'
+            },
+            'sat': {
+                dashboard_title: 'मास डेशबोर्ड',
+                dashboard_subtitle: 'आतु दिसोम रे गोटा होड़ो केस को प्राथमिकता रे नोजोर',
+                high_risk: 'जास्ती खतरा', medium_risk: 'मध्यम खतरा', low_risk: 'कॉम खतरा',
+                search_placeholder: 'ञुतूम चाहे आतु ते सेंधरा...',
+                village_label: 'आतु:', last_updated_label: 'आखिरी अपडेट:',
+                add_patient_btn: 'नवा रोगी जोड़ो',
+                add_new_patient_title: 'नवा रोगी जोड़ो',
+                form_name_label: 'पूरा ञुतूम',
+                form_village_label: 'आतु',
+                form_risk_label: 'खतरा स्तर',
+                form_details_label: 'लक्षण / विवरण',
+                add_translations_label: 'अनुवाद जोड़ो (विकल्प)',
+                cancel_btn: 'रद्द करो',
+                save_patient_btn: 'रोगी बचाओ',
+                history_title: 'हफ्तावार इतिहास',
+                add_entry_btn: 'एंट्री जोड़ो',
+                add_entry_title: 'हफ्तावार एंट्री जोड़ो',
+                week_label: 'हफ्ता (1-41)',
+                bp_label: 'ब्लड प्रेशर (उदा. 120/80)',
+                weight_label: 'वजन (उदा. 65kg)',
+                sugar_label: 'ब्लड शुगर (उदा. 90 mg/dL)',
+                notes_label: 'नोट',
+                save_entry_btn: 'एंट्री बचाओ',
+                no_history: 'कोई इतिहास एंट्री बनूआ।',
+                week_label_short: 'हफ्ता',
+                bp_label_short: 'बीपी',
+                weight_label_short: 'वजन',
+                sugar_label_short: 'शुगर',
+                read_aloud_title: 'रोगीयाह विवरणा को जोर ते पढ़ाओ',
+                play_audio_btn: 'ऑडियो चलाओ',
+                translator_title: 'लाइव गालमाराओ अनुवादक',
+                note_title: 'नोट:',
+                note_body: 'नोआ एकटा सरल प्रदर्शन काना। रियल-टाइम रोड ओपोरोम लागि एकटा सुरक्षित (HTTPS) कनेक्शन दरकार।',
+                translator_instruction: "चेतान रे रोगीयाह भाषा बाछाओ। रोड अनुवाद लागि रिकॉर्ड बटन व्यवहार मे।",
+                asha_worker_label: 'आशा कर्मी (इंग्लिश)',
+                patient_label: 'रोगी',
+                record_btn: 'रिकॉर्ड',
+                stop_btn: 'थिरोः',
+                simulate_call_btn: 'कॉल नकल करो',
+                simulate_sms_btn: 'एसएमएस नकल करो'
+            },
+            'sd': {
+                dashboard_title: 'ماس ڊيش بورڊ',
+                dashboard_subtitle: 'ڳوٺاڻي حمل جي ڪيسن جي ترجيحي نگراني',
+                high_risk: 'وڌيڪ خطرو', medium_risk: 'وچولو خطرو', low_risk: 'گهٽ خطرو',
+                search_placeholder: 'نالي يا ڳوٺ جي حساب سان ڳوليو...',
+                village_label: 'ڳوٺ:', last_updated_label: 'آخري اپڊيٽ:',
+                add_patient_btn: 'نوان مريض شامل ڪريو',
+                add_new_patient_title: 'نوان مريض شامل ڪريو',
+                form_name_label: 'پورو نالو',
+                form_village_label: 'ڳوٺ',
+                form_risk_label: 'خطري جي سطح',
+                form_details_label: 'علامتون / تفصيل',
+                add_translations_label: 'ترجما شامل ڪريو (اختياري)',
+                cancel_btn: 'رد ڪريو',
+                save_patient_btn: 'مريض محفوظ ڪريو',
+                history_title: 'هفتيوار تاريخ',
+                add_entry_btn: 'داخلا شامل ڪريو',
+                add_entry_title: 'هفتيوار داخلا شامل ڪريو',
+                week_label: 'هفتو (1-41)',
+                bp_label: 'بلڊ پريشر (مثال طور، 120/80)',
+                weight_label: 'وزن (مثال طور، 65kg)',
+                sugar_label: 'بلڊ شوگر (مثال طور، 90 mg/dL)',
+                notes_label: 'نوٽس',
+                save_entry_btn: 'داخلا محفوظ ڪريو',
+                no_history: 'اڃا تائين ڪا به تاريخ جي داخلا ناهي.',
+                week_label_short: 'هفتو',
+                bp_label_short: 'بي پي',
+                weight_label_short: 'وزن',
+                sugar_label_short: 'شوگر',
+                read_aloud_title: 'مريض جا تفصيل زور سان پڙهو',
+                play_audio_btn: 'آڊيو هلايو',
+                translator_title: 'لائيو گفتگو مترجم',
+                note_title: 'نوٽ:',
+                note_body: 'هي هڪ آسان نمونو آهي. حقيقي وقت جي تقرير جي سڃاڻپ لاءِ هڪ محفوظ (HTTPS) ڪنيڪਸ਼ਨ جي ضرورت آهي.',
+                translator_instruction: "مٿي مريض جي ٻولي چونڊيو. تقرير کي ترجمو ڪرڻ لاءِ رڪارਡ بٽڻ استعمال ڪريو.",
+                asha_worker_label: 'آشا ورڪر (انگريزي)',
+                patient_label: 'مريض',
+                record_btn: 'رڪارਡ',
+                stop_btn: 'روڪيو',
+                simulate_call_btn: 'ڪال جي نقل ڪريو',
+                simulate_sms_btn: 'ايس ايم ايس جي نقل ڪريو'
+            }
+        };
+
+
+        // DOM elements and state
+        const dashboardContent = document.getElementById('dashboard-content');
+        const searchInput = document.getElementById('search-input');
+        
+        // Patient Details Modal
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        const modalPatientName = document.getElementById('modal-patient-name');
+        const modalRiskDot = document.getElementById('modal-risk-dot');
+        const modalRiskLevel = document.getElementById('modal-risk-level');
+        const modalVillage = document.getElementById('modal-village');
+        const modalLastUpdated = document.getElementById('modal-last-updated');
+        const modalDetails = document.getElementById('modal-details');
+        const actionMessage = document.getElementById('action-message');
+        
+        // Add Patient Modal
+        const addPatientBtn = document.getElementById('add-patient-btn');
+        const addPatientModalBackdrop = document.getElementById('add-patient-modal-backdrop');
+        const closeAddModalBtn = document.getElementById('close-add-modal-btn');
+        const cancelAddPatientBtn = document.getElementById('cancel-add-patient-btn');
+        const addPatientForm = document.getElementById('add-patient-form');
+        const translationFieldsContainer = document.getElementById('translation-fields-container');
+
+        // History Modal
+        const addHistoryBtn = document.getElementById('add-history-btn');
+        const historyEntriesContainer = document.getElementById('history-entries-container');
+        const addHistoryModalBackdrop = document.getElementById('add-history-modal-backdrop');
+        const closeHistoryModalBtn = document.getElementById('close-history-modal-btn');
+        const cancelAddHistoryBtn = document.getElementById('cancel-add-history-btn');
+        const addHistoryForm = document.getElementById('add-history-form');
+
+
+        // Language & Speech
+        const languageSelect = document.getElementById('language-select');
+        const uiLanguageSelect = document.getElementById('ui-language-select');
+        const ttsStatus = document.getElementById('tts-status');
+        const ashaRecordBtn = document.getElementById('asha-record-btn');
+        const patientRecordBtn = document.getElementById('patient-record-btn');
+        const ashaSpeechOutput = document.getElementById('asha-speech-output');
+        const patientSpeechOutput = document.getElementById('patient-speech-output');
+        const sttStatus = document.getElementById('stt-status');
+        const patientLangLabel = document.getElementById('patient-lang-label');
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        let availableVoices = [];
+        let currentPatient = null;
+        let isRecognizing = false;
+        let activeRecordButton = null;
+        const isSecureContext = window.isSecureContext;
+
+        const micIcon = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-1a6 6 0 11-12 0H3a7.001 7.001 0 006 6.93V17H7v1h6v-1h-2v-2.07z" clip-rule="evenodd"></path></svg>`;
+        const stopIcon = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd"></path></svg>`;
+
+
+        function getRiskColor(risk) {
+            return { 'red': 'bg-red-500 border-red-500', 'yellow': 'bg-yellow-500 border-yellow-500', 'green': 'bg-green-500 border-green-500' }[risk] || 'bg-gray-400 border-gray-400';
+        }
+
+        function getRiskText(risk, lang) {
+            const translations = uiTranslations[lang] || uiTranslations['en-IN'];
+            return { 
+                'red': translations.high_risk, 
+                'yellow': translations.medium_risk, 
+                'green': translations.low_risk 
+            }[risk] || 'Unknown Risk';
+        }
+        
+        function populateVoiceList() {
+            if (typeof speechSynthesis === 'undefined') return;
+            availableVoices = speechSynthesis.getVoices();
+        }
+
+        function getPatientDisplayData(patient, lang) {
+            const translation = patient.translations?.[lang];
+            return {
+                name: translation?.name || patient.name,
+                village: translation?.village || patient.village,
+                details: translation?.details || patient.details
+            };
+        }
+
+        function renderPatients(filteredPatients = patients) {
+            dashboardContent.innerHTML = '';
+            const sortedPatients = [...filteredPatients].sort((a, b) => {
+                const riskOrder = { 'red': 1, 'yellow': 2, 'green': 3 };
+                return riskOrder[a.riskLevel] - riskOrder[b.riskLevel];
+            });
+
+            const selectedLang = uiLanguageSelect.value || 'en-IN';
+
+            sortedPatients.forEach(patient => {
+                const displayData = getPatientDisplayData(patient, selectedLang);
+                const patientCard = document.createElement('div');
+                const riskColor = getRiskColor(patient.riskLevel);
+                const riskText = getRiskText(patient.riskLevel, selectedLang);
+                
+                patientCard.className = `bg-white p-6 rounded-lg shadow-md border-t-4 ${riskColor} cursor-pointer hover:shadow-lg transition-shadow`;
+                patientCard.innerHTML = `
+                    <h2 class="text-xl font-semibold text-gray-800 mb-2">${displayData.name}</h2>
+                    <p class="text-sm text-gray-500 mb-4"><span data-translate-key="village_label"></span> ${displayData.village}</p>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full ${riskColor}"></span>
+                        <span class="text-sm font-medium text-gray-700">${riskText}</span>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2"><span data-translate-key="last_updated_label"></span> ${patient.lastUpdated}</p>
+                `;
+                patientCard.onclick = () => openModal(patient);
+                dashboardContent.appendChild(patientCard);
+            });
+
+            // After rendering all cards, translate the static labels within them
+            updateUITextForStaticKeys(selectedLang);
+        }
+        
+        function updateUITextForStaticKeys(lang) {
+             const translations = uiTranslations[lang] || uiTranslations['en-IN'];
+            document.querySelectorAll('[data-translate-key]').forEach(element => {
+                const key = element.getAttribute('data-translate-key');
+                if (translations[key]) {
+                    if (element.hasAttribute('placeholder')) {
+                        element.placeholder = translations[key];
+                    } else {
+                        element.textContent = translations[key];
+                    }
+                }
+            });
+        }
+
+
+        function openModal(patient) {
+            currentPatient = patient;
+            const selectedLang = uiLanguageSelect.value || 'en-IN';
+            
+            updateModalContent(patient, selectedLang);
+            
+            actionMessage.textContent = '';
+            ttsStatus.textContent = '';
+            ashaSpeechOutput.textContent = '';
+            patientSpeechOutput.textContent = '';
+            languageSelect.selectedIndex = 0;
+            
+            window.speechSynthesis.cancel();
+            modalBackdrop.classList.remove('hidden');
+            modalBackdrop.classList.add('flex');
+        }
+
+        function updateModalContent(patient, lang) {
+            const displayData = getPatientDisplayData(patient, lang);
+            modalPatientName.textContent = displayData.name;
+            modalVillage.textContent = displayData.village;
+            modalDetails.textContent = displayData.details;
+            modalRiskDot.className = `w-3 h-3 rounded-full ${getRiskColor(patient.riskLevel)}`;
+            modalRiskLevel.textContent = getRiskText(patient.riskLevel, lang);
+            modalLastUpdated.textContent = patient.lastUpdated;
+            renderHistory(patient, lang);
+            updatePatientLangLabel();
+        }
+
+        function closeModal() {
+            if (isRecognizing) stopRecognition();
+            window.speechSynthesis.cancel();
+            currentPatient = null;
+            modalBackdrop.classList.remove('flex');
+            modalBackdrop.classList.add('hidden');
+        }
+        
+        function populateLanguages() {
+            // For patient voice selection
+            languageSelect.innerHTML = '';
+            indianLanguages.forEach(lang => {
+                const option = document.createElement('option');
+                option.value = lang.code;
+                option.textContent = lang.name;
+                languageSelect.appendChild(option);
+            });
+
+            // For UI language selection
+            uiLanguageSelect.innerHTML = '';
+            uiLanguages.forEach(lang => {
+                const option = document.createElement('option');
+                option.value = lang.code;
+                option.textContent = lang.name;
+                uiLanguageSelect.appendChild(option);
+            });
+        }
+
+        function playText(text, lang, statusElement) {
+            if (!('speechSynthesis' in window) || !text) {
+                if(statusElement) statusElement.textContent = 'Text-to-speech is not supported in this browser.';
+                return;
+            }
+            const voice = availableVoices.find(v => v.lang === lang || v.lang.startsWith(lang.split('-')[0]));
+            if (!voice) {
+                const langName = indianLanguages.find(l => l.code === lang)?.name || lang;
+                if(statusElement && lang) {
+                     statusElement.textContent = `Sorry, a voice for ${langName} is not available on your device.`;
+                     statusElement.className = 'mt-2 text-center text-xs text-red-600 font-semibold';
+                }
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.voice = voice;
+            utterance.lang = lang;
+            utterance.rate = 0.9;
+            utterance.onend = () => { if (statusElement) statusElement.textContent = ''; };
+            utterance.onerror = () => { if (statusElement) statusElement.textContent = 'An error occurred during audio playback.'; };
+            speechSynthesis.speak(utterance);
+        }
+
+        function readDetailsAloud() {
+            if (!currentPatient) return;
+            const selectedLangCode = languageSelect.value;
+            const selectedLangName = languageSelect.options[languageSelect.selectedIndex].text;
+
+            ttsStatus.className = 'mt-2 text-center text-xs text-gray-500'; 
+
+            if (!selectedLangCode) {
+                ttsStatus.textContent = 'Please select a language first.';
+                return;
+            }
+
+            let textToSpeak = '';
+            let langToUse = selectedLangCode;
+            let source = '';
+
+            // Prioritize the most recent history entry
+            if (currentPatient.history && currentPatient.history.length > 0) {
+                const sortedHistory = [...currentPatient.history].sort((a, b) => b.week - a.week);
+                const latestEntry = sortedHistory[0];
+                
+                textToSpeak = latestEntry.translations?.[selectedLangCode]?.notes;
+                source = `Week ${latestEntry.week} Note`;
+
+                if (!textToSpeak) { // Fallback to English note if specific language note isn't present
+                    textToSpeak = latestEntry.notes;
+                    langToUse = 'en-IN';
+                }
+            } else {
+                // If no history, use the main details
+                textToSpeak = currentPatient.translations?.[selectedLangCode]?.details;
+                 source = 'Main Details';
+                if (!textToSpeak) { // Fallback to English details
+                    textToSpeak = currentPatient.details;
+                    langToUse = 'en-IN';
+                }
+            }
+
+            // Set status message based on what's being played
+            if (langToUse === selectedLangCode) {
+                ttsStatus.textContent = `Playing ${source} in ${selectedLangName}...`;
+            } else {
+                 ttsStatus.textContent = `Translation for ${source} not found. Reading in English.`;
+                 ttsStatus.className = 'mt-2 text-center text-xs text-yellow-700 font-semibold';
+            }
+            
+            modalDetails.textContent = textToSpeak; // Update display to match audio
+            playText(textToSpeak, langToUse, ttsStatus);
+        }
+        
+        function simulateLiveTranslation(text, targetLang) {
+            const lowerText = text.toLowerCase().trim().replace(/[.?]/g, ''); 
+
+            if (targetLang !== 'en-IN') { // Translating from English
+                const translationsEN_HI = { "hello": "नमस्ते", "how are you": "आप कैसी हैं?", "are you feeling okay": "क्या आप ठीक महसूस कर रही हैं?", "do you have pain": "क्या आपको दर्द हो रहा ਹੈ?", "where is the pain": "दर्द कहाँ है?", "i will check your blood pressure": "मैं आपका रक्तचाप जांचूंगी।", "everything is normal": "सब कुछ सामान्य ਹੈ।", "please take your medicine": "कृपया अपनी दवा लें।" };
+                for (const [key, value] of Object.entries(translationsEN_HI)) {
+                    if (lowerText.includes(key)) return value;
+                }
+                return `(सिमुलेशन) ${text}`;
+            } else { // Translating to English
+                const translationsHI_EN = { "नमस्ते": "Hello", "मैं ठीक हूँ": "I am fine", "मुझे दर्द हो रहा है": "I am having pain", "मेरे पेट में दर्द है": "I have pain in my stomach", "हाँ": "Yes", "नहीं": "No", "धन्यवाद": "Thank you" };
+                for (const [key, value] of Object.entries(translationsHI_EN)) {
+                    if (lowerText.includes(key)) return value;
+                }
+                if (lowerText.includes('ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ')) return 'Hello'; 
+                return `(Simulated English for: "${text}")`;
+            }
+        }
+        
+        async function checkAndRequestMicPermission() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                sttStatus.textContent = 'Microphone access is not supported by your browser.';
+                return false;
+            }
+            try {
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                return true;
+            } catch (err) {
+                sttStatus.textContent = 'Microphone access denied. Please enable it in your browser settings.';
+                return false;
+            }
+        }
+
+        function setButtonState(button, isRecording) {
+            const textEl = document.getElementById(`${button.id}-text`);
+            const iconEl = document.getElementById(`${button.id}-icon`);
+            const currentLang = uiLanguageSelect.value || 'en-IN';
+            const translations = uiTranslations[currentLang] || uiTranslations['en-IN'];
+
+            if (isRecording) {
+                textEl.textContent = translations.stop_btn || 'Stop';
+                iconEl.innerHTML = stopIcon;
+                button.classList.add('recording-button');
+            } else {
+                textEl.textContent = translations.record_btn || 'Record';
+                iconEl.innerHTML = micIcon;
+                button.classList.remove('recording-button');
+            }
+        }
+
+        function stopRecognition() {
+            if (recognition) {
+                recognition.stop();
+            }
+        }
+
+        async function startRecognition(lang, outputEl, translationEl, translationTargetLang, buttonEl) {
+            if (!isSecureContext || !recognition) {
+                sttStatus.textContent = 'Speech recognition is disabled.';
+                return;
+            }
+            const hasPermission = await checkAndRequestMicPermission();
+            if (!hasPermission) return;
+
+            isRecognizing = true;
+            activeRecordButton = buttonEl;
+            setButtonState(buttonEl, true);
+            patientRecordBtn.disabled = (buttonEl !== patientRecordBtn);
+            ashaRecordBtn.disabled = (buttonEl !== ashaRecordBtn);
+
+            recognition.lang = lang;
+            recognition.start();
+
+            recognition.onstart = () => { sttStatus.textContent = 'Listening...'; };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                outputEl.textContent = transcript;
+                sttStatus.textContent = 'Translating...';
+                
+                setTimeout(() => {
+                    const translatedText = simulateLiveTranslation(transcript, translationTargetLang);
+                    translationEl.textContent = translatedText;
+                    if(sttStatus.textContent === 'Translating...') sttStatus.textContent = '';
+
+                    if (outputEl === ashaSpeechOutput) {
+                        setTimeout(() => playText(translatedText, translationTargetLang, null), 100);
+                    }
+                }, 500);
+            };
+
+            recognition.onerror = (event) => {
+                let msg;
+                switch (event.error) {
+                    case 'not-allowed': msg = 'Microphone access denied.'; break;
+                    case 'network': msg = 'Network error. Check connection.'; break;
+                    case 'no-speech': msg = 'No speech detected. Try again.'; break;
+                    case 'language-not-supported': msg = 'Language not supported for recognition.'; break;
+                    default: msg = 'An error occurred during recognition.';
+                }
+                sttStatus.textContent = msg;
+            };
+
+            recognition.onend = () => {
+                if(['Listening...', 'Translating...'].includes(sttStatus.textContent)) sttStatus.textContent = '';
+                isRecognizing = false;
+                if (activeRecordButton) setButtonState(activeRecordButton, false);
+                patientRecordBtn.disabled = false;
+                ashaRecordBtn.disabled = false;
+                activeRecordButton = null;
+            };
+        }
+
+        function updatePatientLangLabel() {
+            if (!languageSelect.options[languageSelect.selectedIndex]) return;
+            const selectedOption = languageSelect.options[languageSelect.selectedIndex];
+            const currentLang = uiLanguageSelect.value || 'en-IN';
+            const patientLabelText = (uiTranslations[currentLang] || uiTranslations['en-IN']).patient_label;
+            patientLangLabel.textContent = (selectedOption && selectedOption.value) ? `${patientLabelText} (${selectedOption.text})` : patientLabelText;
+        }
+        
+        function handleRecordClick(button, lang, outputEl, translationEl, translationTargetLang) {
+            if (isRecognizing) {
+                stopRecognition();
+            } else {
+                const patientLang = languageSelect.value;
+                if (!patientLang) {
+                    sttStatus.textContent = 'Please select the patient\'s language first.';
+                    return;
+                }
+                const recognitionLang = (button === patientRecordBtn) ? patientLang : lang;
+                startRecognition(recognitionLang, outputEl, translationEl, translationTargetLang, button);
+            }
+        }
+
+        // --- Event Listeners ---
+        ashaRecordBtn.addEventListener('click', () => {
+            const patientLang = languageSelect.value;
+            handleRecordClick(ashaRecordBtn, 'en-IN', ashaSpeechOutput, patientSpeechOutput, patientLang);
+        });
+
+        patientRecordBtn.addEventListener('click', () => {
+            const patientLang = languageSelect.value;
+            handleRecordClick(patientRecordBtn, patientLang, patientSpeechOutput, ashaSpeechOutput, 'en-IN');
+        });
+
+        languageSelect.addEventListener('change', updatePatientLangLabel);
+
+        uiLanguageSelect.addEventListener('change', (event) => {
+            const lang = event.target.value;
+            renderPatients(); 
+            updateUITextForStaticKeys(lang);
+            if (currentPatient) {
+                updateModalContent(currentPatient, lang);
+            }
+        });
+
+        function simulateAction(type) {
+            actionMessage.textContent = type === 'call' ? 'Simulating call...' : 'Simulating SMS...';
+            setTimeout(() => { actionMessage.textContent = `Action successful!`; }, 1000);
+        }
+
+        // --- Add Patient Modal Logic ---
+        function openAddPatientModal() {
+            addPatientForm.reset();
+            populateTranslationFields();
+            addPatientModalBackdrop.classList.remove('hidden');
+            addPatientModalBackdrop.classList.add('flex');
+        }
+
+        function closeAddPatientModal() {
+            addPatientModalBackdrop.classList.add('hidden');
+            addPatientModalBackdrop.classList.remove('flex');
+        }
+        
+        function populateTranslationFields() {
+            translationFieldsContainer.innerHTML = '';
+            // Skip English ('en-IN') as it's the main field
+            const languagesToOffer = uiLanguages.filter(lang => lang.code !== 'en-IN');
+            
+            languagesToOffer.forEach(lang => {
+                const langCode = lang.code;
+                const langName = lang.name;
+                const fieldSet = document.createElement('div');
+                fieldSet.innerHTML = `
+                    <h4 class="font-semibold text-gray-600">${langName}</h4>
+                    <div class="space-y-2 mt-1">
+                        <input type="text" id="new-patient-name-${langCode}" placeholder="Full Name" class="block w-full text-sm px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                        <input type="text" id="new-patient-village-${langCode}" placeholder="Village" class="block w-full text-sm px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                        <textarea id="new-patient-details-${langCode}" placeholder="Symptoms / Details" rows="2" class="block w-full text-sm px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm"></textarea>
+                    </div>
+                `;
+                translationFieldsContainer.appendChild(fieldSet);
+            });
+        }
+
+        addPatientBtn.addEventListener('click', openAddPatientModal);
+        closeAddModalBtn.addEventListener('click', closeAddPatientModal);
+        cancelAddPatientBtn.addEventListener('click', closeAddPatientModal);
+        addPatientModalBackdrop.addEventListener('click', closeAddPatientModal);
+
+        addPatientForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const newPatient = {
+                id: Date.now(), // Use timestamp for a more unique ID
+                name: document.getElementById('new-patient-name-en-IN').value,
+                village: document.getElementById('new-patient-village-en-IN').value,
+                riskLevel: document.getElementById('new-patient-risk').value,
+                details: document.getElementById('new-patient-details-en-IN').value,
+                lastUpdated: 'Just now',
+                translations: {},
+                history: []
+            };
+
+            const languagesToOffer = uiLanguages.filter(lang => lang.code !== 'en-IN');
+            languagesToOffer.forEach(lang => {
+                const langCode = lang.code;
+                const name = document.getElementById(`new-patient-name-${langCode}`).value;
+                const village = document.getElementById(`new-patient-village-${langCode}`).value;
+                const details = document.getElementById(`new-patient-details-${langCode}`).value;
+
+                if(name && village && details) {
+                    newPatient.translations[langCode] = { name, village, details };
+                }
+            });
+
+            patients.push(newPatient);
+            renderPatients();
+            closeAddPatientModal();
+        });
+
+        // --- History Modal Logic ---
+        function openHistoryModal() {
+            addHistoryForm.reset();
+            addHistoryModalBackdrop.classList.remove('hidden');
+            addHistoryModalBackdrop.classList.add('flex');
+        }
+        function closeHistoryModal() {
+            addHistoryModalBackdrop.classList.add('hidden');
+            addHistoryModalBackdrop.classList.remove('flex');
+        }
+
+        function renderHistory(patient, lang) {
+            const translations = uiTranslations[lang] || uiTranslations['en-IN'];
+            historyEntriesContainer.innerHTML = '';
+            if (!patient.history || patient.history.length === 0) {
+                historyEntriesContainer.innerHTML = `<p class="text-sm text-gray-500 text-center italic">${translations.no_history}</p>`;
+                return;
+            }
+
+            const sortedHistory = [...patient.history].sort((a,b) => b.week - a.week); // Show latest first
+
+            sortedHistory.forEach(entry => {
+                const noteText = entry.translations?.[lang]?.notes || entry.notes;
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'p-3 bg-gray-100 rounded-md text-sm';
+                entryDiv.innerHTML = `
+                    <p class="font-bold text-gray-800">${translations.week_label_short} ${entry.week}</p>
+                    <div class="grid grid-cols-3 gap-2 mt-1 text-xs text-gray-600">
+                        <span><strong>${translations.bp_label_short}:</strong> ${entry.bp}</span>
+                        <span><strong>${translations.weight_label_short}:</strong> ${entry.weight}</span>
+                        <span><strong>${translations.sugar_label_short}:</strong> ${entry.sugar}</span>
+                    </div>
+                    <p class="mt-2 text-gray-700">${noteText}</p>
+                `;
+                historyEntriesContainer.appendChild(entryDiv);
+            });
+        }
+        
+        addHistoryBtn.addEventListener('click', openHistoryModal);
+        closeHistoryModalBtn.addEventListener('click', closeHistoryModal);
+        cancelAddHistoryBtn.addEventListener('click', closeHistoryModal);
+        addHistoryModalBackdrop.addEventListener('click', closeHistoryModal);
+
+        addHistoryForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newEntry = {
+                week: document.getElementById('history-week').value,
+                bp: document.getElementById('history-bp').value,
+                weight: document.getElementById('history-weight').value,
+                sugar: document.getElementById('history-sugar').value,
+                notes: document.getElementById('history-notes').value,
+                translations: {} // No translation for new ad-hoc entries
+            };
+            currentPatient.history.push(newEntry);
+            renderHistory(currentPatient, uiLanguageSelect.value);
+            closeHistoryModal();
+        });
+
+
+        function initializeApp() {
+            populateLanguages();
+            
+            const splashScreen = document.getElementById('splash-screen');
+            const mainContent = document.getElementById('main-content');
+
+            setTimeout(() => {
+                splashScreen.style.opacity = '0';
+                splashScreen.addEventListener('transitionend', () => {
+                    splashScreen.classList.add('hidden');
+                });
+                mainContent.style.opacity = '1';
+                
+                const defaultLang = uiLanguageSelect.value || 'en-IN';
+                renderPatients();
+                updateUITextForStaticKeys(defaultLang);
+            }, 2500); // Show splash for 2.5 seconds
+
+
+            searchInput.addEventListener('keyup', (event) => {
+                const searchTerm = event.target.value.toLowerCase();
+                const selectedLang = uiLanguageSelect.value || 'en-IN';
+
+                const filteredPatients = patients.filter(p => {
+                    const displayData = getPatientDisplayData(p, selectedLang);
+                    return displayData.name.toLowerCase().includes(searchTerm) || 
+                           displayData.village.toLowerCase().includes(searchTerm);
+                });
+                renderPatients(filteredPatients);
+            });
+
+            if ('speechSynthesis' in window) {
+                populateVoiceList();
+                if (speechSynthesis.onvoiceschanged !== undefined) {
+                    speechSynthesis.onvoiceschanged = populateVoiceList;
+                }
+            }
+            
+            if (!isSecureContext || !SpeechRecognition) {
+                sttStatus.innerHTML = `<strong class="text-red-600">Translator Disabled:</strong> <span class="text-gray-600">Requires a secure (HTTPS) connection.</span>`;
+                ashaRecordBtn.disabled = true;
+                patientRecordBtn.disabled = true;
+                ashaRecordBtn.classList.add('disabled-button');
+                patientRecordBtn.classList.add('disabled-button');
+            } else {
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+    </script>
+</body>
+</html>
+
+
